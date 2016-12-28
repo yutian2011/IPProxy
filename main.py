@@ -9,6 +9,7 @@ import multiprocessing
 import settings
 import test_and_verify
 from proxy import get_proxy
+from settings import log
 
 
 def main():
@@ -16,7 +17,6 @@ def main():
     msg_queue = multiprocessing.Queue()
     p1 = multiprocessing.Process(target=get_proxy,args=(ip_queue,msg_queue))
     p2 = multiprocessing.Process(target=test_and_verify.verify_process,args=(ip_queue,msg_queue))
-    print "-----------------------------------------"
     p1.start()
     p2.start()
     p1.join()
@@ -28,5 +28,6 @@ def test():
 
 
 if __name__ == '__main__':
+    log.info("--------------------end-start--------------------------")
     main()
     #test()

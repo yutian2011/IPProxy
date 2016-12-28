@@ -1,10 +1,4 @@
 # -*- coding: utf-8 -*-
-"""
-Created on Wed Dec 21 10:40:49 2016
-
-@author: KIDC
-"""
-
 from Queue import Queue
 from  lxml import etree
 import requests
@@ -17,17 +11,24 @@ from pybloom import BloomFilter
 import socket
 monkey.patch_socket()
 from pydrbloomfilter.pydrbloomfilter import pydrbloomfilter
+from settings import log
+import os
+from settings import REFRESH_BF
 
 #bloom = BloomFilter(capacity=100000, error_rate=0.001)
 bloom = pydrbloomfilter(100000, 0.001, REDIS_CONNECTION)
 
 def get_pages(url):
-    headers["User-Agent"] = random.choice(USER_AGENT_LIST)
-    r = requests.get(url,headers=headers)
-    if r.ok:
-        return r.content
-    else:
-        return None
+    try:
+        headers["User-Agent"] = random.choice(USER_AGENT_LIST)
+        r = requests.get(url,headers=headers)
+        if r.ok:
+            return r.content
+        else:
+            return None
+    except Exception as e:
+        log.error("PID:%d error:%s url:%s" % (os.getpid(),e.message,url))
+    return None
 
 def parse_page(page,pattern):
     page = etree.HTML(page.lower()) 
@@ -51,7 +52,7 @@ def worker(pattern,q):
     for i in range(len(pattern["url"])):
         for j in range(1,num+1):
             url = pattern["url"][i] % j
-            print url
+            log.debug("PID:%d url:%s" % (os.getpid(),url))
             page = get_pages(url)
             if page == None:
                 continue
@@ -63,7 +64,7 @@ def worker(pattern,q):
                     try:
                         bloom.add(ele["ip"])
                     except Exception as e:
-                        print e
+                        log.error("PID:%d bloom filter error:%s ip:%s" % (os.getpid(),e.message),ele["ip"])
                     q.put(ele)
                 #print "element:",ele,is_existed
             #time.sleep(10)这里使用time的话,会导致线程sleep
@@ -72,6 +73,7 @@ def worker(pattern,q):
 
 def get_proxy(q,msg_queue):
     bloom.clear()
+    times = 0
     while True:
         msg_queue.put("OK")
         t1 = time.time()
@@ -83,7 +85,14 @@ def get_proxy(q,msg_queue):
         t = REFRESH_WEB_SITE_TIMEER - (t2 - t1)
         if t > 0:
             time.sleep(t)
-            print "web site sleep end"
+            log.debug("PID:%d web site sleep end" % os.getpid())
+            if times == REFRESH_BF:
+                bloom.clear()
+                times = 0
+                log.debug("PID:%d refresh bloom filter" % os.getpid())
+            else:
+                times += 1
+
         
 
 if __name__ == "__main__":
@@ -91,8 +100,3 @@ if __name__ == "__main__":
     get_proxy(q)
     #worker(URL_PATTERN[URL_LIST[0]],q)
             
-
-#1.proxy gevent
-#2.代理的生成. scrapy从数据库 中数据
-#最后尝试开线程每个website,开协程在每一个网站+使用代理的方式
-#webapi的形式         

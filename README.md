@@ -2,7 +2,8 @@
 
 ## 说明
         项目是在使用scrapy爬取数据时,不可避免碰到的使用代理IP问题.
-    网上也有比较好的项目,也可以直接拿来用.[qiyeboy/IPProxyPool](https://github.com/qiyeboy/IPProxyPool).
+    网上也有比较好的项目,也可以直接拿来用. 
+    [qiyeboy/IPProxyPool](https://github.com/qiyeboy/IPProxyPool/)
         之所以重复造轮子也是有原因的,也大体了解了qiyeboy的项目.
         1. 如果某段时间内迟迟达不到设定的最小值时,会导致多次重复抓取,IPProxyPool项目中没有IP的判重.如果抓取到相同的IP,如果再去判定有一定资源的消耗.
         2. 数据返回根据评分返回,如果评分过高的话,每次返回的ip都差不多,如果爬取速度过快怕被封ip.这个没测试,猜测.选取时,通过speed和score两个筛选数据的.
@@ -15,7 +16,7 @@
         4. 在使用代理ip时,目前没有提供具体接口,自己在redis中获取.使用轮询的方式.通过count字段,做了一个有序集合,每次获取第一个数据,然后自己做自增.
         TODO
         通过Web方式公布api.
-        
+
 
 ## 安装
 需要安装的软件:redis,lxml,gevent,redis-py.

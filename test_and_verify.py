@@ -29,6 +29,7 @@ from gevent import monkey
 monkey.patch_socket()
 monkey.patch_ssl()
 import redis
+from settings import log
 
 def db_insert(ip_port,type,time,r=None):
     if r == None:
@@ -89,6 +90,7 @@ def test_url(ip,is_http,redis=None):
         else:
             r = requests.get(TEST_URL,proxies=pro,timeout=SOKCET_TIMEOUT)
         time += r.elapsed.microseconds/1000
+        #log.debug("PID:%d Test IP:%s result:%d time:%d" % (os.getpid(),ip,r.status_code,time))
         if r.ok:
             flag = True
             if STORE_COOKIE and r != None:
@@ -96,8 +98,7 @@ def test_url(ip,is_http,redis=None):
                 if cookie_old != cookie:
                     redis.set(ip,cookie)
     except Exception as e:
-        print e
-        pass
+        log.debug("PID:%d error:%s" % (os.getpid(),e.message))
     return flag,time
 
 
@@ -105,16 +106,14 @@ def verify_ip_in_queues(q):
     r = redis.StrictRedis(REDIS_SERVER,REDIS_PORT,DB_FOR_IP)
     while True:
         try:
-            #print "verify_ip_in_queues waiting-----------"
             item = q.get(timeout=QUEUE_TIMEOUT)
             #print "ip test:",item
             ret,time = test_url(item["ip"],item["type"],r)
-            print "queue:",item["ip"],ret,time
+            log.debug("PID:%d queue ip:%s result:%d"%(os.getpid(),item["ip"],ret))
             if ret:
                 db_insert(item["ip"],item["type"],time,r)
         except Exception as e:
-            print e
-            break
+            log.error("PID:%d error:%s" % (os.getpid(),e.message))
     return
 
 
@@ -125,22 +124,25 @@ def verify_ip_in_db(q,r):
             ip = msg["ip_port"]
             type = msg["type"]
             ret,time = test_url(ip,type,r)
-            print "redis ip:",ip,ret,time
+            log.debug("PID:%d redis ip:%s result:%d time:%d" % (os.getpid(),ip,ret,time))
             if ret == False:
                 db_delete(ip,r)
             else:
                 db_insert(ip,type,time,r)
     except Exception as e:
-        print e
+        log.error("PID:%d error:%s" % (os.getpid(),e.message))
         
     
 def gevent_queue(q):
+    log.debug("PID:%d gevent queue start---------------------->" % os.getpid())
     glist = []
     for i in range(GEVENT_NUM):
         glist.append(gevent.spawn(verify_ip_in_queues,q))
     gevent.joinall(glist)
+    log.debug("PID:%d gevent queue end<----------------------" % os.getpid())
 
 def gevent_db():
+    log.debug("PID:%d gevent db start---------------------->" % os.getpid())
     glist = []
     q = InQueue.Queue()
     r = redis.StrictRedis(REDIS_SERVER,REDIS_PORT,DB_FOR_IP)
@@ -150,6 +152,7 @@ def gevent_db():
     for i in range(GEVENT_NUM):
         glist.append(gevent.spawn(verify_ip_in_db,q,r))
     gevent.joinall(glist)
+    log.debug("PID:%d gevent db end<----------------------" % os.getpid())
         
 def verify_process(q,msg_queue):
     p = multiprocessing.Process(target=gevent_db)
@@ -162,13 +165,13 @@ def verify_process(q,msg_queue):
             start = time.time()
             msg_queue.get(timeout=t)
             middle = time.time()
-            print "----------------queue start---------------"
+            log.debug("PID:%d queue start ------>" % (os.getpid()))
             #verify_ip_in_queues(q)
             p = multiprocessing.Process(target=gevent_queue,args=(q,))
             p.daemon = True
             p.start()
         except (Empty) as e: #也可以通过with Timeout(10)方式
-            print "------------ip in db start------------"
+            log.debug("PID:%d db start ------>" % (os.getpid()))
             flag = 2
             #verify_ip_in_db()
             p = multiprocessing.Process(target=gevent_db)
@@ -176,7 +179,7 @@ def verify_process(q,msg_queue):
             p.start()
         finally:
             end = time.time()
-            print t,end - start
+            log.debug("PID:%d last sleep time:%f used:%f" % (os.getpid(),t,end - start))
             if flag == 1:
                 if end - start >= t :
                     p = multiprocessing.Process(target=gevent_db)

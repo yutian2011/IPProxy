@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 
+import logging
+import logging.handlers
 
 class IPProxyBase(object):
     def __init__(self,q):
@@ -9,7 +11,6 @@ class IPProxyBase(object):
     
 #invalid
 API_XICIDAILI_URL = "http://api.xicidaili.com/free2016.txt"
-
 URL_LIST = ["XICIDAILI","KUAIDAILI","66IP",]
 #URL_LIST = ["KUAIDAILI"]
 '''
@@ -56,6 +57,7 @@ SOKCET_TIMEOUT = 30  # used in TEST_URLS
 QUEUE_TIMEOUT = 60
 REFRESH_WEB_SITE_TIMEER = 60*30
 REFRESH_DB_TIMER = 60*30
+REFRESH_BF = 24 #time = REFRESH_BF *REFRESH_WEB_SITE_TIMEER
 GEVENT_NUM = 10
 REDIS_SERVER = "127.0.0.1"
 REDIS_PORT = 6379
@@ -132,3 +134,19 @@ USER_AGENT_LIST = [
        ]
 
 
+log = logging.getLogger("proxy")
+log.setLevel(logging.DEBUG)
+# 建立一个filehandler来把日志记录在文件里，级别为debug以上
+#fh = logging.FileHandler("spam.log")
+fh = logging.handlers.TimedRotatingFileHandler("proxy.log", "D", 1, 10)
+fh.setLevel(logging.DEBUG)
+# 建立一个streamhandler来把日志打在CMD窗口上，级别为error以上
+ch = logging.StreamHandler()
+ch.setLevel(logging.ERROR)
+# 设置日志格式
+formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+ch.setFormatter(formatter)
+fh.setFormatter(formatter)
+#将相应的handler添加在logger对象中
+#log.addHandler(ch)
+log.addHandler(fh)
