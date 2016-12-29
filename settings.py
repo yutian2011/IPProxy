@@ -10,6 +10,7 @@ class IPProxyBase(object):
         pass
     
 #invalid
+MIN_NUM = 10000
 API_XICIDAILI_URL = "http://api.xicidaili.com/free2016.txt"
 URL_LIST = ["XICIDAILI","KUAIDAILI","66IP",]
 #URL_LIST = ["KUAIDAILI"]
@@ -49,7 +50,7 @@ URL_PATTERN = {
 
             }   
               
-TEST_URL = "https://www.baidu.com"
+TEST_URL = "https://www.douban.com"
 STORE_COOKIE = True
 TYPES = ["http","https"]
 #SOCKET_FILE = "ipproxy_pipe"
@@ -148,5 +149,7 @@ formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(messag
 ch.setFormatter(formatter)
 fh.setFormatter(formatter)
 #将相应的handler添加在logger对象中
-#log.addHandler(ch)
+log.addHandler(ch)
 log.addHandler(fh)
+
+# ip 测试  http://ip.filefab.com/index.php

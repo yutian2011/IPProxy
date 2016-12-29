@@ -46,7 +46,7 @@ def db_select(r=None):
         r = redis.StrictRedis(REDIS_SERVER,REDIS_PORT,DB_FOR_IP)
     s = r.zrange(REDIS_SORT_SET_COUNTS,0,-1)
     if len(s) == 0:
-        return
+        return 
     for i in s:
         type = (r.zscore(REDIS_SORT_SET_TYPES,i))
         if type == None:
@@ -72,7 +72,6 @@ def db_find_one():
     else:
         r.zincrby(REDIS_SORT_SET_COUNTS,s[0])
         return s[0]
-
     
 def test_url(ip,is_http,redis=None):
     pro = {TYPES[is_http]:ip}
@@ -109,7 +108,7 @@ def verify_ip_in_queues(q):
             item = q.get(timeout=QUEUE_TIMEOUT)
             #print "ip test:",item
             ret,time = test_url(item["ip"],item["type"],r)
-            log.debug("PID:%d queue ip:%s result:%d"%(os.getpid(),item["ip"],ret))
+            #log.debug("PID:%d queue ip:%s result:%d"%(os.getpid(),item["ip"],ret))
             if ret:
                 db_insert(item["ip"],item["type"],time,r)
         except Exception as e:
@@ -124,7 +123,7 @@ def verify_ip_in_db(q,r):
             ip = msg["ip_port"]
             type = msg["type"]
             ret,time = test_url(ip,type,r)
-            log.debug("PID:%d redis ip:%s result:%d time:%d" % (os.getpid(),ip,ret,time))
+            #log.debug("PID:%d redis ip:%s result:%d time:%d" % (os.getpid(),ip,ret,time))
             if ret == False:
                 db_delete(ip,r)
             else:

@@ -7,13 +7,16 @@ from settings import *
 import gevent
 import time
 from gevent import monkey
-from pybloom import BloomFilter
+#from pybloom import BloomFilter
 import socket
 monkey.patch_socket()
 from pydrbloomfilter.pydrbloomfilter import pydrbloomfilter
 from settings import log
 import os
 from settings import REFRESH_BF
+from settings import MIN_NUM
+import redis
+
 
 #bloom = BloomFilter(capacity=100000, error_rate=0.001)
 bloom = pydrbloomfilter(100000, 0.001, REDIS_CONNECTION)
@@ -70,11 +73,22 @@ def worker(pattern,q):
             #time.sleep(10)这里使用time的话,会导致线程sleep
             gevent.sleep(10)
 
+def db_zcount():
+    r = redis.StrictRedis(REDIS_SERVER,REDIS_PORT,DB_FOR_IP)
+    return r.zcard(REDIS_SORT_SET_COUNTS)
 
 def get_proxy(q,msg_queue):
     bloom.clear()
     times = 0
     while True:
+        num = db_zcount()
+        while num > MIN_NUM:
+            time.sleep(REFRESH_WEB_SITE_TIMEER)
+            times += 1
+            if times == REFRESH_BF:
+                bloom.clear()
+                times = 0
+                log.debug("PID:%d refresh bloom filter" % os.getpid())
         msg_queue.put("OK")
         t1 = time.time()
         event = []
@@ -86,12 +100,12 @@ def get_proxy(q,msg_queue):
         if t > 0:
             time.sleep(t)
             log.debug("PID:%d web site sleep end" % os.getpid())
+            times += 1
             if times == REFRESH_BF:
                 bloom.clear()
                 times = 0
                 log.debug("PID:%d refresh bloom filter" % os.getpid())
-            else:
-                times += 1
+                
 
         
 
