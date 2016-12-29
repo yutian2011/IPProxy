@@ -82,6 +82,7 @@ def get_proxy(q,msg_queue):
     times = 0
     while True:
         num = db_zcount()
+        log.debug("PID:%d db current ips %d" % (os.getpid(),num))
         while num > MIN_NUM:
             time.sleep(REFRESH_WEB_SITE_TIMEER)
             times += 1
