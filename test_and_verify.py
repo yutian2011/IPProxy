@@ -112,7 +112,7 @@ def verify_ip_in_queues(q):
             if ret:
                 db_insert(item["ip"],item["type"],time,r)
         except Exception as e:
-            log.error("PID:%d error:%s" % (os.getpid(),e.message))
+            log.error("PID:%d queue error:%s" % (os.getpid(),e.message))
     return
 
 
@@ -129,7 +129,7 @@ def verify_ip_in_db(q,r):
             else:
                 db_insert(ip,type,time,r)
     except Exception as e:
-        log.error("PID:%d error:%s" % (os.getpid(),e.message))
+        log.error("PID:%d db error:%s" % (os.getpid(),e.message))
         
     
 def gevent_queue(q):
@@ -148,6 +148,10 @@ def gevent_db():
     ips = db_select()
     for ip,type in ips:
         q.put({"ip_port":ip,"type":type})
+    if q.empty():
+        log.debug("PID:%d db no data" % os.getpid())
+        log.debug("PID:%d gevent db end<----------------------" % os.getpid())
+        return
     for i in range(GEVENT_NUM):
         glist.append(gevent.spawn(verify_ip_in_db,q,r))
     gevent.joinall(glist)
