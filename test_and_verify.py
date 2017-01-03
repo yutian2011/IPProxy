@@ -132,7 +132,7 @@ def verify_ip_in_queues(q):
     while True:
         try:
             item = q.get(timeout=QUEUE_TIMEOUT)
-            print "ip test:",item
+            #print "ip test:",item
             ret,time = test_url(item["ip_port"],item["type"],r)
             #log.debug("PID:%d queue ip:%s result:%d"%(os.getpid(),item["ip"],ret))
             if ret:
