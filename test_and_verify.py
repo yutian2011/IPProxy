@@ -16,9 +16,11 @@ from settings import REDIS_SORT_SET_TYPES
 from settings import TYPES
 from settings import QUEUE_TIMEOUT
 from settings import STORE_COOKIE
+from settings import USE_DEFAULT_COOKIE
 import requests
 from requests.utils import dict_from_cookiejar
 from requests.cookies import cookiejar_from_dict
+from random import Random
 import gevent
 import multiprocessing
 import Queue as InQueue
@@ -58,7 +60,7 @@ def db_select(r=None):
 def db_delete(ip,r):
     if r == None:
         r = redis.StrictRedis(REDIS_SERVER,REDIS_PORT,DB_FOR_IP)
-    r.zrem(REDIS_SORT_SET_COUNTS,ip)
+    log.debug(r.zrem(REDIS_SORT_SET_COUNTS,ip))
     r.zrem(REDIS_SORT_SET_TIME,ip)
     r.zrem(REDIS_SORT_SET_TYPES,ip)
     if STORE_COOKIE:
@@ -72,7 +74,16 @@ def db_find_one():
     else:
         r.zincrby(REDIS_SORT_SET_COUNTS,s[0])
         return s[0]
-    
+
+def random_str(randomlength=8):
+    str = ''
+    chars = 'AaBbCcDdEeFfGgHhIiJjKkLlMmNnOoPpQqRrSsTtUuVvWwXxYyZz0123456789'
+    length = len(chars) - 1
+    random = Random()
+    for i in range(randomlength):
+        str+=chars[random.randint(0, length)]
+    return str
+
 def test_url(ip,is_http,redis=None):
     pro = {TYPES[is_http]:ip}
     time = 0
@@ -81,21 +92,36 @@ def test_url(ip,is_http,redis=None):
             #print "test url:",i,ip,pro
         r = None
         cookie_old = None
-        if STORE_COOKIE and r != None:
+        if STORE_COOKIE and redis != None:
             cookie = redis.get(ip)
-            if cookie != None:
+            #print "old cookie:",cookie
+            if cookie != None and cookie != "None" and cookie != "{}":
+                #print "use cookie"
                 cookie_old = cookiejar_from_dict(json.loads(cookie))
-                r= requests.get(TEST_URL,proxies=pro,cookies=cookie_old,timeout=SOKCET_TIMEOUT)
+                r = requests.get(TEST_URL,proxies=pro,cookies=cookie_old,timeout=SOKCET_TIMEOUT)
+            else:
+                if USE_DEFAULT_COOKIE:
+                    cookie = cookiejar_from_dict({"bid":random_str()})
+                    r = requests.get(TEST_URL,proxies=pro,cookies=cookie,timeout=SOKCET_TIMEOUT)
+                else:
+                    r = requests.get(TEST_URL,proxies=pro,timeout=SOKCET_TIMEOUT)
         else:
-            r = requests.get(TEST_URL,proxies=pro,timeout=SOKCET_TIMEOUT)
+            if USE_DEFAULT_COOKIE:
+                cookie = cookiejar_from_dict({"bid":random_str()})
+                r = requests.get(TEST_URL,proxies=pro,cookies=cookie,timeout=SOKCET_TIMEOUT)
+            else:
+                r = requests.get(TEST_URL,proxies=pro,timeout=SOKCET_TIMEOUT)
         time += r.elapsed.microseconds/1000
-        #log.debug("PID:%d Test IP:%s result:%d time:%d" % (os.getpid(),ip,r.status_code,time))
+        log.debug("PID:%d Test IP:%s result:%d time:%d" % (os.getpid(),ip,r.status_code,time))
         if r.ok:
             flag = True
-            if STORE_COOKIE and r != None:
-                cookie = json.dumps(dict_from_cookiejar(r.cookies))
-                if cookie_old != cookie:
-                    redis.set(ip,cookie)
+            if STORE_COOKIE:
+                #print "new cookies:",r.cookies
+                if r.cookies != None :
+                    cookie = json.dumps(dict_from_cookiejar(r.cookies))
+                    if cookie_old != cookie:
+                        #print "store new cookie:",cookie
+                        redis.set(ip,cookie)
     except Exception as e:
         log.debug("PID:%d error:%s" % (os.getpid(),e.message))
     return flag,time
@@ -167,12 +193,12 @@ def verify_process(q,msg_queue):
             flag = 1
             start = time.time()
             msg_queue.get(timeout=t)
-            middle = time.time()
             log.debug("PID:%d queue start ------>" % (os.getpid()))
             #verify_ip_in_queues(q)
             p = multiprocessing.Process(target=gevent_queue,args=(q,))
             p.daemon = True
             p.start()
+            p.join()
         except (Empty) as e: #也可以通过with Timeout(10)方式
             log.debug("PID:%d db start ------>" % (os.getpid()))
             flag = 2
@@ -180,15 +206,21 @@ def verify_process(q,msg_queue):
             p = multiprocessing.Process(target=gevent_db)
             p.daemon = True
             p.start()
+            p.join()
         finally:
             end = time.time()
             log.debug("PID:%d last sleep time:%f used:%f" % (os.getpid(),t,end - start))
             if flag == 1:
                 if end - start >= t :
+                    t1 = time.time()
                     p = multiprocessing.Process(target=gevent_db)
                     p.daemon = True
                     p.start()
-                    t = REFRESH_DB_TIMER
+                    p.join()
+                    t2 = time.time()
+                    t = REFRESH_DB_TIMER - (t2 - t1)
+                    if t < 0:
+                        t = REFRESH_DB_TIMER
                 else:
                     t = t - (end - start)
             elif flag ==2:

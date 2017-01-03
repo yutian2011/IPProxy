@@ -10,7 +10,7 @@ class IPProxyBase(object):
         pass
     
 #invalid
-MIN_NUM = 10000
+MIN_NUM = 3000
 API_XICIDAILI_URL = "http://api.xicidaili.com/free2016.txt"
 URL_LIST = ["XICIDAILI","KUAIDAILI","66IP",]
 #URL_LIST = ["KUAIDAILI"]
@@ -50,8 +50,9 @@ URL_PATTERN = {
 
             }   
               
-TEST_URL = "https://www.douban.com"
+TEST_URL = "https://www.baidu.com"
 STORE_COOKIE = True
+USE_DEFAULT_COOKIE = True
 TYPES = ["http","https"]
 #SOCKET_FILE = "ipproxy_pipe"
 SOKCET_TIMEOUT = 30  # used in TEST_URLS
