@@ -42,11 +42,12 @@ def parse_page(page,pattern):
     for i in range(len(ips)):
         ret = {}
         str = "%s:%s"
-        ret["ip"] = str%(ips[i].text,ports[i].text)
+        ret["ip_port"] = str%(ips[i].text,ports[i].text)
         if ty[i].text.find("https") == -1:
             ret["type"] = 0
         else:
             ret["type"] = 1
+        ret["db_flag"] = False
         yield ret
 
 
@@ -61,13 +62,13 @@ def worker(pattern,q):
                 continue
             lists = parse_page(page,pattern)
             for ele in lists:
-                is_existed = ele["ip"] in bloom
+                is_existed = ele["ip_port"] in bloom
                 #print ele,is_existed
                 if is_existed == False:
                     try:
-                        bloom.add(ele["ip"])
+                        bloom.add(ele["ip_port"])
                     except Exception as e:
-                        log.error("PID:%d bloom filter error:%s ip:%s" % (os.getpid(),e.message),ele["ip"])
+                        log.error("PID:%d bloom filter error:%s ip:%s" % (os.getpid(),e.message),ele["ip_port"])
                     q.put(ele)
                 #print "element:",ele,is_existed
             #time.sleep(10)这里使用time的话,会导致线程sleep

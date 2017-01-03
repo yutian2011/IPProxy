@@ -132,11 +132,14 @@ def verify_ip_in_queues(q):
     while True:
         try:
             item = q.get(timeout=QUEUE_TIMEOUT)
-            #print "ip test:",item
-            ret,time = test_url(item["ip"],item["type"],r)
+            print "ip test:",item
+            ret,time = test_url(item["ip_port"],item["type"],r)
             #log.debug("PID:%d queue ip:%s result:%d"%(os.getpid(),item["ip"],ret))
             if ret:
-                db_insert(item["ip"],item["type"],time,r)
+                db_insert(item["ip_port"],item["type"],time,r)
+            else:
+                if item["db_flag"]:
+                    db_delete(item["ip_port"],r)
         except Exception as e:
             log.error("PID:%d queue error:%s" % (os.getpid(),e.message))
     return
@@ -158,42 +161,51 @@ def verify_ip_in_db(q,r):
         log.error("PID:%d db error:%s" % (os.getpid(),e.message))
         
     
-def gevent_queue(q):
-    log.debug("PID:%d gevent queue start---------------------->" % os.getpid())
-    glist = []
-    for i in range(GEVENT_NUM):
-        glist.append(gevent.spawn(verify_ip_in_queues,q))
-    gevent.joinall(glist)
-    log.debug("PID:%d gevent queue end<----------------------" % os.getpid())
+def gevent_queue(q,msg_queue):
+    while True:
+        msg = msg_queue.get(block=True)
+        print "get msg:",msg
+        log.debug("PID:%d gevent queue start---------------------->" % os.getpid())
+        glist = []
+        for i in range(GEVENT_NUM):
+            glist.append(gevent.spawn(verify_ip_in_queues,q))
+        gevent.joinall(glist)
+        l = msg_queue.qsize()
+        for i in range(l):
+            msg_queue.get()
+        log.debug("PID:%d gevent queue end<----------------------" % os.getpid())
 
-def gevent_db():
-    log.debug("PID:%d gevent db start---------------------->" % os.getpid())
-    glist = []
-    q = InQueue.Queue()
+def get_ips_from_db(q):
+    log.debug("PID:%d get_ips_from_db start---------------------->" % os.getpid())
     r = redis.StrictRedis(REDIS_SERVER,REDIS_PORT,DB_FOR_IP)
     ips = db_select()
     for ip,type in ips:
-        q.put({"ip_port":ip,"type":type})
-    if q.empty():
+        q.put({"ip_port":ip,"type":type,"db_flag":True})
+    if len(ips) == 0:
         log.debug("PID:%d db no data" % os.getpid())
-        log.debug("PID:%d gevent db end<----------------------" % os.getpid())
-        return
-    for i in range(GEVENT_NUM):
-        glist.append(gevent.spawn(verify_ip_in_db,q,r))
-    gevent.joinall(glist)
-    log.debug("PID:%d gevent db end<----------------------" % os.getpid())
-        
+    log.debug("PID:%d get_ips_from_db end<----------------------" % os.getpid())
+    return
+
+
+
+def verify_db_data(q,msg_queue):
+    while True:
+        get_ips_from_db(q)
+        msg_queue.put("OK")
+        time.sleep(REFRESH_DB_TIMER)
+
+'''   
 def verify_process(q,msg_queue):
-    p = multiprocessing.Process(target=gevent_db)
-    p.daemon = True
-    p.start()
+    #p = multiprocessing.Process(target=gevent_db)
+    #p.daemon = True
+    #p.start()
     t = REFRESH_DB_TIMER
     while True:
         try:
             flag = 1
             start = time.time()
             msg_queue.get(timeout=t)
-            log.debug("PID:%d queue start ------>" % (os.getpid()))
+            log.debug("PID:%d queue start --- 659'e--->" % (os.getpid()))
             #verify_ip_in_queues(q)
             p = multiprocessing.Process(target=gevent_queue,args=(q,))
             p.daemon = True
@@ -225,15 +237,9 @@ def verify_process(q,msg_queue):
                     t = t - (end - start)
             elif flag ==2:
                 t = REFRESH_DB_TIMER
+'''
 
 
 
-
-
-def test_verify_ip_in_queues(q):
-    l = []
-    for i in range(10):
-        l.append(gevent.spawn(verify_ip_in_queues,q))
-    gevent.joinall(l)
     
     
