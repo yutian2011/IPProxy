@@ -177,13 +177,17 @@ def gevent_queue(q,msg_queue):
         log.debug("PID:%d gevent queue end<----------------------" % os.getpid())
 
 def get_ips_from_db(q):
-    log.debug("PID:%d get_ips_from_db start---------------------->" % os.getpid())
-    r = redis.StrictRedis(REDIS_SERVER,REDIS_PORT,DB_FOR_IP)
-    ips = db_select()
-    for ip,type in ips:
-        q.put({"ip_port":ip,"type":type,"db_flag":True})
-    if len(ips) == 0:
-        log.debug("PID:%d db no data" % os.getpid())
+    try:
+        log.debug("PID:%d get_ips_from_db start---------------------->" % os.getpid())
+        r = redis.StrictRedis(REDIS_SERVER,REDIS_PORT,DB_FOR_IP)
+        ips = db_select()
+        i = 0
+        for ip,type in ips:
+            q.put({"ip_port":ip,"type":type,"db_flag":True})
+            i += 1
+        log.debug("PID:%d get_ips_from_db cur ip num:%d" % (os.getpid(),i))
+    except Exception as e:
+        log.error("PID:%d get_ips_from_db error:%s" % (os.getpid(),e.message))
     log.debug("PID:%d get_ips_from_db end<----------------------" % os.getpid())
     return
 
@@ -191,8 +195,8 @@ def get_ips_from_db(q):
 
 def verify_db_data(q,msg_queue):
     while True:
-        get_ips_from_db(q)
         msg_queue.put("OK")
+        get_ips_from_db(q)
         time.sleep(REFRESH_DB_TIMER)
 
 '''   
