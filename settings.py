@@ -49,7 +49,8 @@ URL_PATTERN = {
             },
 
             }   
-              
+
+PID = "./PROXY_PID"
 TEST_URL = "https://www.baidu.com"
 STORE_COOKIE = True
 USE_DEFAULT_COOKIE = True

@@ -142,6 +142,7 @@ def verify_ip_in_queues(q):
                     db_delete(item["ip_port"],r)
         except Exception as e:
             log.error("PID:%d queue error:%s" % (os.getpid(),e.message))
+            break
     return
 
 

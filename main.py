@@ -10,6 +10,9 @@ import settings
 import test_and_verify
 from proxy import get_proxy
 from settings import log
+from settings import PID
+import os
+import json
 
 
 def main():
@@ -21,6 +24,9 @@ def main():
     p1.start()
     p2.start()
     p3.start()
+    pid_list = [os.getpid(),p1.pid,p2.pid,p3.pid]
+    with open(PID,"w") as f:
+        f.write(json.dumps(pid_list))
     p1.join()
     p2.join()
     p3.join()
