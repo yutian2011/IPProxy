@@ -51,7 +51,7 @@ URL_PATTERN = {
             }   
 
 PID = "PROXY_PID"
-TEST_URL = "https://movie.douban.com"
+TEST_URL = "https://www.baidu.com"
 TEST_PROCESS_NUM = 5
 STORE_COOKIE = True
 USE_DEFAULT_COOKIE = True
