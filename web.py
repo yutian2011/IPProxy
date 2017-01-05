@@ -19,7 +19,7 @@ def db_find_one(num,cookie=False):
     cookies = []
     types = []
     if len(s) == 0:
-        return None
+        return None,None,None
     else:
         for i in range(num):
             r.zincrby(REDIS_SORT_SET_COUNTS,s[i])
@@ -39,6 +39,7 @@ def get_proxy(num):
 @app.route('/proxy/api/cookies/<int:num>', methods=['GET'])
 def get_proxy_with_cookies(num):
     ret,types,cookies = db_find_one(num,True)
+    print ret,types,cookies
     if ret == None:
         return jsonify({"ret":False})
     else:

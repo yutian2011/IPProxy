@@ -165,7 +165,6 @@ def verify_ip_in_db(q,r):
 def gevent_queue(q,msg_queue):
     while True:
         msg = msg_queue.get(block=True)
-        print "get msg:",msg
         log.debug("PID:%d gevent queue start---------------------->" % os.getpid())
         glist = []
         for i in range(GEVENT_NUM):
