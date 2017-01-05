@@ -31,7 +31,9 @@ from gevent import monkey
 monkey.patch_socket()
 monkey.patch_ssl()
 import redis
+import os
 from settings import log
+from settings import TEST_PROCESS_NUM
 
 def db_insert(ip_port,type,time,r=None):
     if r == None:
@@ -112,7 +114,7 @@ def test_url(ip,is_http,redis=None):
             else:
                 r = requests.get(TEST_URL,proxies=pro,timeout=SOKCET_TIMEOUT)
         time += r.elapsed.microseconds/1000
-        log.debug("PID:%d Test IP:%s result:%d time:%d" % (os.getpid(),ip,r.status_code,time))
+        log.debug("PID:%d Test IP:%s result:%d time:%d type:%s" % (os.getpid(),ip,r.status_code,time,TYPES[is_http]))
         if r.ok:
             flag = True
             if STORE_COOKIE:
@@ -166,6 +168,10 @@ def gevent_queue(q,msg_queue):
     while True:
         msg = msg_queue.get(block=True)
         log.debug("PID:%d gevent queue start---------------------->" % os.getpid())
+        if TEST_PROCESS_NUM > 1:
+            for i in range(TEST_PROCESS_NUM-1):
+                msg_queue.put(os.getpid())
+                log.debug("PID:%d gevent queue call other processes----" % os.getpid())
         glist = []
         for i in range(GEVENT_NUM):
             glist.append(gevent.spawn(verify_ip_in_queues,q))

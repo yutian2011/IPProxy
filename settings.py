@@ -50,8 +50,9 @@ URL_PATTERN = {
 
             }   
 
-PID = "./PROXY_PID"
-TEST_URL = "https://www.baidu.com"
+PID = "PROXY_PID"
+TEST_URL = "https://movie.douban.com"
+TEST_PROCESS_NUM = 5
 STORE_COOKIE = True
 USE_DEFAULT_COOKIE = True
 TYPES = ["http","https"]
@@ -59,7 +60,7 @@ TYPES = ["http","https"]
 SOKCET_TIMEOUT = 30  # used in TEST_URLS
 QUEUE_TIMEOUT = 60
 REFRESH_WEB_SITE_TIMEER = 60*30
-REFRESH_DB_TIMER = 60*30
+REFRESH_DB_TIMER = 60*60
 REFRESH_BF = 24 #time = REFRESH_BF *REFRESH_WEB_SITE_TIMEER
 GEVENT_NUM = 10
 REDIS_SERVER = "127.0.0.1"

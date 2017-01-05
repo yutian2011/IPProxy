@@ -20,16 +20,20 @@ def main():
     msg_queue = multiprocessing.Queue()
     p1 = multiprocessing.Process(target=get_proxy,args=(ip_queue,msg_queue))
     p2 = multiprocessing.Process(target=test_and_verify.verify_db_data,args=(ip_queue,msg_queue))
-    p3 = multiprocessing.Process(target=test_and_verify.gevent_queue,args=(ip_queue,msg_queue))
+    p3 = [multiprocessing.Process(target=test_and_verify.gevent_queue,args=(ip_queue,msg_queue)) for i in range(settings.TEST_PROCESS_NUM)]
     p1.start()
     p2.start()
-    p3.start()
-    pid_list = [os.getpid(),p1.pid,p2.pid,p3.pid]
+    for p in p3:
+        p.start()
+    pid_list = [os.getpid(),p1.pid,p2.pid,]
+    for p in p3:
+        pid_list.append(p.pid)
     with open(PID,"w") as f:
         f.write(json.dumps(pid_list))
     p1.join()
     p2.join()
-    p3.join()
+    for p in p3:
+        p.join()
 
 
 def test():
