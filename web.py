@@ -47,7 +47,11 @@ def db_find(num):
                 d["cookies"] = ""
         if not WEB_USE_REDIS_CACHE:
             r.zincrby(REDIS_SORT_SET_COUNTS,ip)
-        d["type"] = TYPE[int(r.zscore(REDIS_SORT_SET_TYPES,ip))]
+        type = r.zscore(REDIS_SORT_SET_TYPES,ip)
+        if type != None:
+            d["type"] = TYPE[int(type)]
+        else:
+            continue
         ret.append(d)
     if n > 0:
         l = len(ips)

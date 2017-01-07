@@ -62,7 +62,8 @@ def db_select(r=None):
 def db_delete(ip,r):
     if r == None:
         r = redis.StrictRedis(REDIS_SERVER,REDIS_PORT,DB_FOR_IP)
-    log.debug(r.zrem(REDIS_SORT_SET_COUNTS,ip))
+    log.debug("PID:%d delete IP:%s " % (os.getpid(),ip))
+    r.zrem(REDIS_SORT_SET_COUNTS,ip)
     r.zrem(REDIS_SORT_SET_TIME,ip)
     r.zrem(REDIS_SORT_SET_TYPES,ip)
     if STORE_COOKIE:
@@ -88,6 +89,8 @@ def random_str(randomlength=8):
 
 def test_url(ip,is_http,redis=None):
     pro = {TYPES[is_http]:ip}
+    #if redis == None:
+    #    redis = redis.StrictRedis(REDIS_SERVER,REDIS_PORT,DB_FOR_IP)
     time = 0
     flag= False
     try:
@@ -95,12 +98,12 @@ def test_url(ip,is_http,redis=None):
         r = None
         cookie_old = None
         if STORE_COOKIE and redis != None:
-            cookie = redis.get(ip)
+            cookie_old = redis.get(ip)
             #print "old cookie:",cookie
-            if cookie != None and cookie != "None" and cookie != "{}":
+            if cookie_old != None and cookie_old != "None" and cookie_old != "{}":
                 #print "use cookie"
-                cookie_old = cookiejar_from_dict(json.loads(cookie))
-                r = requests.get(DEST_URL,proxies=pro,cookies=cookie_old,timeout=SOKCET_TIMEOUT)
+                cookies = cookiejar_from_dict(json.loads(cookie_old))
+                r = requests.get(DEST_URL,proxies=pro,cookies=cookies,timeout=SOKCET_TIMEOUT)
             else:
                 if USE_DEFAULT_COOKIE:
                     cookie = cookiejar_from_dict({"bid":random_str()})
@@ -117,12 +120,12 @@ def test_url(ip,is_http,redis=None):
         log.debug("PID:%d Test IP:%s result:%d time:%d type:%s" % (os.getpid(),ip,r.status_code,time,TYPES[is_http]))
         if r.ok:
             flag = True
-            if STORE_COOKIE:
+            if STORE_COOKIE and redis != None:
                 #print "new cookies:",r.cookies
                 if r.cookies != None :
                     cookie = json.dumps(dict_from_cookiejar(r.cookies))
-                    if cookie_old != cookie:
-                        #print "store new cookie:",cookie
+                    if cookie and cookie != "{}" and cookie_old != cookie:
+                        log.debug("PID:%d IP:%s new cookies:%s old cookies:%s" % (os.getpid(),ip,cookie,cookie_old))
                         redis.set(ip,cookie)
     except Exception as e:
         log.debug("PID:%d error:%s" % (os.getpid(),e.message))
@@ -141,34 +144,18 @@ def verify_ip_in_queues(q):
                 db_insert(item["ip_port"],item["type"],time,r)
             else:
                 if item["db_flag"]:
+                    log.debug("PID:%d queue ip delete:%s"%(os.getpid(),item["ip_port"]))
                     db_delete(item["ip_port"],r)
         except Exception as e:
             log.error("PID:%d queue error:%s" % (os.getpid(),e.message))
             break
     return
-
-
-def verify_ip_in_db(q,r):
-    try:
-        while True:
-            msg = q.get(timeout=5)
-            ip = msg["ip_port"]
-            type = msg["type"]
-            ret,time = test_url(ip,type,r)
-            #log.debug("PID:%d redis ip:%s result:%d time:%d" % (os.getpid(),ip,ret,time))
-            if ret == False:
-                db_delete(ip,r)
-            else:
-                db_insert(ip,type,time,r)
-    except Exception as e:
-        log.error("PID:%d db error:%s" % (os.getpid(),e.message))
-        
     
 def gevent_queue(q,msg_queue):
     while True:
         msg = msg_queue.get(block=True)
         log.debug("PID:%d gevent queue start---------------------->" % os.getpid())
-        if TEST_PROCESS_NUM > 1:
+        if TEST_PROCESS_NUM > 1 and msg == "OK":
             for i in range(TEST_PROCESS_NUM-1):
                 msg_queue.put(os.getpid())
                 log.debug("PID:%d gevent queue call other processes----" % os.getpid())

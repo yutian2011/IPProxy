@@ -9,7 +9,7 @@ class IPProxyBase(object):
     def get_proxy():
         pass
     
-MIN_NUM = 1500
+MIN_NUM = 1000
 API_XICIDAILI_URL = "http://api.xicidaili.com/free2016.txt" # not use
 URL_LIST = ["XICIDAILI","KUAIDAILI","66IP",]
 #URL_LIST = ["KUAIDAILI"]
@@ -51,7 +51,7 @@ URL_PATTERN = {
             }   
 
 PID = "PROXY_PID" # store process id for cmd.sh
-DEST_URL = "https://www.baidu.com" #test url for test_and_verify
+DEST_URL = "https://www.douban.com" #test url for test_and_verify
 TEST_URL = "https://www.baidu.com" #test url for web cache
 TEST_PROCESS_NUM = 5 # Test ip process number
 STORE_COOKIE = True  # store cookie or not

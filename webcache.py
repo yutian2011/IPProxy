@@ -16,7 +16,9 @@ from settings import REDIS_SORT_SET_COUNTS
 from settings import REDIS_SORT_SET_TYPES
 from settings import WEB_USE_REDIS_CACHE
 from settings import WEB_CACHE_IP_NUM
+from settings import WEB_CACHE_REFRESH
 from settings import STORE_COOKIE
+
 import gevent
 from gevent import monkey
 monkey.patch_socket()
@@ -71,7 +73,11 @@ class WebCachedIP(object):
                 break
             ip = ips[self.cur_pos]
             self.cur_pos += 1
-            ret,time = test_url(ip,int(r.zscore(REDIS_SORT_SET_TYPES,ip)))
+            type = r.zscore(REDIS_SORT_SET_TYPES,ip)
+            ret = False
+            time = 0
+            if type != None:
+                ret,time = test_url(ip,int(type))
             if not ret:
                 self.db_delete(r,ip,is_cached)
                 self.cur_num -= 1
