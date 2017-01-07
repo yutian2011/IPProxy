@@ -66,11 +66,14 @@ class WebCachedIP(object):
             r.delete(ip)
 
     def test_ip(self,r,ips,is_cached):
+        if ips == None or r == None:
+            return
         while True:
             #print "cur pos:",self.cur_pos,self.len,self.cur_num
             if self.cur_pos == self.len - 1 :
                 #print "end"
                 break
+            print ips,len(ips)
             ip = ips[self.cur_pos]
             self.cur_pos += 1
             type = r.zscore(REDIS_SORT_SET_TYPES,ip)
@@ -99,10 +102,11 @@ class WebCachedIP(object):
                 self.len = num
                 print ips
                 #print "cur num",self.cur_num,self.cur_pos,self.len
-                if num >0:
+                if num >0 and ips != None and len(ips) > 0 :
                     glist = [gevent.spawn(self.test_ip,r,ips,True) for i in range(GEVENT_NUM)]
                     gevent.joinall(glist)
-                while self.cur_num < WEB_CACHE_IP_NUM:
+                times = 0
+                while self.cur_num < WEB_CACHE_IP_NUM and times < 1024:
                     print "cur num",self.cur_num
                     n = (WEB_CACHE_IP_NUM - self.cur_num)*2
                     num,ips = self.db_set_select(r,REDIS_SORT_SET_COUNTS,True,n)
@@ -110,6 +114,7 @@ class WebCachedIP(object):
                     self.len = num
                     glist = [gevent.spawn(self.test_ip,r,ips,False) for i in range(GEVENT_NUM)]
                     gevent.joinall(glist)
+                    times += 1
                     #print "cur num end ",self.cur_num
             except Exception as e:
                 print e
@@ -121,6 +126,9 @@ class WebCachedIP(object):
                 if t > 0:
                     time.sleep(t)
 
+def web_cache_run():
+    obj = WebCachedIP()
+    obj.web_ip_cache()
 
 if __name__ == "__main__":
     obj = WebCachedIP()
