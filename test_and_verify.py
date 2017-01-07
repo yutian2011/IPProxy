@@ -3,7 +3,7 @@ import requests
 import sys
 import os
 import time
-from settings import TEST_URL
+from settings import DEST_URL
 from settings import SOKCET_TIMEOUT
 from settings import GEVENT_NUM
 from settings import REFRESH_DB_TIMER
@@ -100,19 +100,19 @@ def test_url(ip,is_http,redis=None):
             if cookie != None and cookie != "None" and cookie != "{}":
                 #print "use cookie"
                 cookie_old = cookiejar_from_dict(json.loads(cookie))
-                r = requests.get(TEST_URL,proxies=pro,cookies=cookie_old,timeout=SOKCET_TIMEOUT)
+                r = requests.get(DEST_URL,proxies=pro,cookies=cookie_old,timeout=SOKCET_TIMEOUT)
             else:
                 if USE_DEFAULT_COOKIE:
                     cookie = cookiejar_from_dict({"bid":random_str()})
-                    r = requests.get(TEST_URL,proxies=pro,cookies=cookie,timeout=SOKCET_TIMEOUT)
+                    r = requests.get(DEST_URL,proxies=pro,cookies=cookie,timeout=SOKCET_TIMEOUT)
                 else:
-                    r = requests.get(TEST_URL,proxies=pro,timeout=SOKCET_TIMEOUT)
+                    r = requests.get(DEST_URL,proxies=pro,timeout=SOKCET_TIMEOUT)
         else:
             if USE_DEFAULT_COOKIE:
                 cookie = cookiejar_from_dict({"bid":random_str()})
-                r = requests.get(TEST_URL,proxies=pro,cookies=cookie,timeout=SOKCET_TIMEOUT)
+                r = requests.get(DEST_URL,proxies=pro,cookies=cookie,timeout=SOKCET_TIMEOUT)
             else:
-                r = requests.get(TEST_URL,proxies=pro,timeout=SOKCET_TIMEOUT)
+                r = requests.get(DEST_URL,proxies=pro,timeout=SOKCET_TIMEOUT)
         time += r.elapsed.microseconds/1000
         log.debug("PID:%d Test IP:%s result:%d time:%d type:%s" % (os.getpid(),ip,r.status_code,time,TYPES[is_http]))
         if r.ok:

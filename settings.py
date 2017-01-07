@@ -9,12 +9,12 @@ class IPProxyBase(object):
     def get_proxy():
         pass
     
-#invalid
-MIN_NUM = 3000
-API_XICIDAILI_URL = "http://api.xicidaili.com/free2016.txt"
+MIN_NUM = 1500
+API_XICIDAILI_URL = "http://api.xicidaili.com/free2016.txt" # not use
 URL_LIST = ["XICIDAILI","KUAIDAILI","66IP",]
 #URL_LIST = ["KUAIDAILI"]
 '''
+# for test
 URL_PATTERN = {
              "KUAIDAILI":{
              "url":["http://www.kuaidaili.com/proxylist/"],
@@ -50,30 +50,39 @@ URL_PATTERN = {
 
             }   
 
-PID = "PROXY_PID"
-TEST_URL = "https://www.baidu.com"
-TEST_PROCESS_NUM = 5
-STORE_COOKIE = True
-USE_DEFAULT_COOKIE = True
+PID = "PROXY_PID" # store process id for cmd.sh
+DEST_URL = "https://www.baidu.com" #test url for test_and_verify
+TEST_URL = "https://www.baidu.com" #test url for web cache
+TEST_PROCESS_NUM = 5 # Test ip process number
+STORE_COOKIE = True  # store cookie or not
+USE_DEFAULT_COOKIE = True #request web with cookie or not 
 TYPES = ["http","https"]
-#SOCKET_FILE = "ipproxy_pipe"
 SOKCET_TIMEOUT = 30  # used in TEST_URLS
-QUEUE_TIMEOUT = 60
-REFRESH_WEB_SITE_TIMEER = 60*30
-REFRESH_DB_TIMER = 60*60
+QUEUE_TIMEOUT = 60  
+REFRESH_WEB_SITE_TIMEER = 60*30 #
+REFRESH_DB_TIMER = 60*45 #check ip in db
 REFRESH_BF = 24 #time = REFRESH_BF *REFRESH_WEB_SITE_TIMEER
-GEVENT_NUM = 10
+GEVENT_NUM = 10 #gevent number
+#---redis---------------------------------------
 REDIS_SERVER = "127.0.0.1"
 REDIS_PORT = 6379
 DB_FOR_IP = 0
 REDIS_SORT_SET_TIME = "proxy_time"
 REDIS_SORT_SET_COUNTS = "proxy_counts"
 REDIS_SORT_SET_TYPES = "proxy_types"
+#---web cache----------------------------------
+WEB_USE_REDIS_CACHE = True
+WEB_CACHE_IP_NUM = 60
+WEB_CACHE_REFRESH = 3*60
+WEB_CACHE_REDIS = 2
+REDIS_SET_CACHE = "web_cache_ip"
+#---redis for bloom filter----------------------
 REDIS_CONNECTION = {
     'host': REDIS_SERVER,
     'port': REDIS_PORT,
     'db': 1,
     'bfkey': 'bf'}
+#---default headers------------------------------
 headers = {
          "Upgrade-Insecure-Requests" : "1",
          "Connection" : "keep-alive",
@@ -82,6 +91,7 @@ headers = {
          "Accept-Encoding" : "gzip, deflate, sdch, br",
          
           }
+#---user agent list---------------------------------
 USER_AGENT_LIST = [
         "Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.1 (KHTML, like Gecko) Chrome/22.0.1207.1 Safari/537.1",  
         "Mozilla/5.0 (X11; CrOS i686 2268.111.0) AppleWebKit/536.11 (KHTML, like Gecko) Chrome/20.0.1132.57 Safari/536.11",  
@@ -137,21 +147,16 @@ USER_AGENT_LIST = [
         "Mozilla/5.0 (X11; U; Linux x86_64; zh-CN; rv:1.9.2.10) Gecko/20100922 Ubuntu/10.10 (maverick) Firefox/3.6.10"
        ]
 
-
+#---log --------------------------------------------------
 log = logging.getLogger("proxy")
 log.setLevel(logging.DEBUG)
-# 建立一个filehandler来把日志记录在文件里，级别为debug以上
-#fh = logging.FileHandler("spam.log")
 fh = logging.handlers.TimedRotatingFileHandler("proxy.log", "D", 1, 10)
 fh.setLevel(logging.DEBUG)
-# 建立一个streamhandler来把日志打在CMD窗口上，级别为error以上
 ch = logging.StreamHandler()
 ch.setLevel(logging.ERROR)
-# 设置日志格式
 formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 ch.setFormatter(formatter)
 fh.setFormatter(formatter)
-#将相应的handler添加在logger对象中
 log.addHandler(ch)
 log.addHandler(fh)
 
