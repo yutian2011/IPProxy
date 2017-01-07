@@ -11,6 +11,7 @@ import test_and_verify
 from proxy import get_proxy
 from settings import log
 from settings import PID
+from settings import WEB_USE_REDIS_CACHE
 import os
 import json
 from webcache import web_cache_run
@@ -27,18 +28,19 @@ def main():
     p2.start()
     for p in p3:
         p.start()
-    p4.start()
-    pid_list = [os.getpid(),p1.pid,p2.pid,p4.pid]
-    for p in p3:
-        pid_list.append(p.pid)
-
+    pid_list = [os.getpid(),p1.pid,p2.pid,]
+    pid_list.extend(p.pid for p in p3)
+    if WEB_USE_REDIS_CACHE:
+        p4.start()
+        pid_list.append(p4.pid)
     with open(PID,"w") as f:
         f.write(json.dumps(pid_list))
     p1.join()
     p2.join()
     for p in p3:
         p.join()
-    p4.join()
+    if WEB_USE_REDIS_CACHE:
+        p4.join()
 
 def test():
     test_and_verify.verify_ip_in_db()
