@@ -11,7 +11,7 @@ class IPProxyBase(object):
     
 MIN_NUM = 1000
 API_XICIDAILI_URL = "http://api.xicidaili.com/free2016.txt" # not use
-URL_LIST = ["XICIDAILI","KUAIDAILI","66IP",]
+#URL_LIST = ["XICIDAILI","KUAIDAILI","66IP","IP181",]
 #URL_LIST = ["KUAIDAILI"]
 '''
 # for test
@@ -47,7 +47,20 @@ URL_PATTERN = {
              "type":"//tbody/tr/td[3]",
              "page_range":10
             },
-
+            "IP181":{
+             "url":["http://www.ip181.com/","http://www.ip181.com/daili/%d.html"],
+             "ip":"//tr[@class!='active' or not (@class)]/td[1]",
+             "port":"//tr[@class!='active' or not (@class)]/td[2]",
+             "type":"//tr[@class!='active' or not (@class)]/td[4]",
+             "page_range":10
+            },
+            "MIMIIP":{
+             "url":["http://www.mimiip.com/","http://www.mimiip.com/gngao/%d","http://www.mimiip.com/gnpu/%d","http://www.mimiip.com/gntou/%d","http://www.mimiip.com/hw/%d"],
+             "ip":"//tr/td[1]",
+             "port":"//tr/td[2]",
+             "type":"//tr/td[5]",
+             "page_range":10
+            },
             }   
 
 PID = "PROXY_PID" # store process id for cmd.sh
@@ -61,7 +74,7 @@ SOKCET_TIMEOUT = 30  # used in TEST_URLS
 QUEUE_TIMEOUT = 60  
 REFRESH_WEB_SITE_TIMEER = 60*30 #
 REFRESH_DB_TIMER = 60*45 #check ip in db
-REFRESH_BF = 24 #time = REFRESH_BF *REFRESH_WEB_SITE_TIMEER
+REFRESH_BF = 6 #time = REFRESH_BF *REFRESH_WEB_SITE_TIMEER
 GEVENT_NUM = 10 #gevent number
 #---redis---------------------------------------
 REDIS_SERVER = "127.0.0.1"
@@ -74,7 +87,7 @@ REDIS_SORT_SET_TYPES = "proxy_types"
 WEB_USE_REDIS_CACHE = True
 WEB_CACHE_IP_NUM = 60
 WEB_CACHE_REFRESH = 3*60
-WEB_CACHE_REDIS = 2
+#WEB_CACHE_REDIS = 2
 REDIS_SET_CACHE = "web_cache_ip"
 #---redis for bloom filter----------------------
 REDIS_CONNECTION = {

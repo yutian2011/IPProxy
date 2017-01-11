@@ -50,33 +50,37 @@ def parse_page(page,pattern):
         ret["db_flag"] = False
         yield ret
 
+def get_and_check(url,pattern,q):
+    page = get_pages(url)
+    if page == None:
+        return
+    lists = parse_page(page,pattern)
+    for ele in lists:
+        is_existed = ele["ip_port"] in bloom
+        log.debug("PID:%d proxy worker ip %s  is_existed %d" % (os.getpid(),ele["ip_port"],is_existed))
+        if is_existed == False:
+            try:
+                  bloom.add(ele["ip_port"])
+            except Exception as e:
+                log.error("PID:%d bloom filter error:%s ip:%s" % (os.getpid(),e.message),ele["ip_port"])
+            q.put(ele)
 
 def worker(pattern,q):
     try:
         num = pattern["page_range"]
         for i in range(len(pattern["url"])):
+            index = pattern["url"][i].find("%d")
+            if index == -1:
+                get_and_check(pattern["url"][i],pattern,q)
+                gevent.sleep(10)
+                continue
             for j in range(1,num+1):
                 url = pattern["url"][i] % j
                 log.debug("PID:%d url:%s" % (os.getpid(),url))
-                page = get_pages(url)
-                if page == None:
-                    continue
-                lists = parse_page(page,pattern)
-                for ele in lists:
-                    is_existed = ele["ip_port"] in bloom
-                    log.debug("PID:%d proxy worker ip %s  is_existed %d" % (os.getpid(),ele["ip_port"],is_existed))
-                    #print ele,is_existed
-                    if is_existed == False:
-                        try:
-                            bloom.add(ele["ip_port"])
-                        except Exception as e:
-                            log.error("PID:%d bloom filter error:%s ip:%s" % (os.getpid(),e.message),ele["ip_port"])
-                        q.put(ele)
-                    #print "element:",ele,is_existed
-                #time.sleep(10)这里使用time的话,会导致线程sleep
+                get_and_check(url,pattern,q)
                 gevent.sleep(10)
     except Exception as e:
-        log.error("PID:%d proxy error:%s ip:%s" % (os.getpid(),e))
+        log.error("PID:%d proxy error:%s " % (os.getpid(),e))
 
 def db_zcount():
     r = redis.StrictRedis(REDIS_SERVER,REDIS_PORT,DB_FOR_IP)
@@ -98,8 +102,8 @@ def get_proxy(q,msg_queue):
         msg_queue.put("OK")
         t1 = time.time()
         event = []
-        for i in range(len(URL_LIST)):
-           event.append(gevent.spawn(worker,URL_PATTERN[URL_LIST[i]],q))
+        for key,value in URL_PATTERN.items():
+           event.append(gevent.spawn(worker,value,q))
         gevent.joinall(event)
         t2 = time.time()
         t = REFRESH_WEB_SITE_TIMEER - (t2 - t1)

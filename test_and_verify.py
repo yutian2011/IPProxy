@@ -102,11 +102,14 @@ def test_url(ip,is_http,redis=None):
             #print "old cookie:",cookie
             if cookie_old != None and cookie_old != "None" and cookie_old != "{}":
                 #print "use cookie"
+                log.debug("PID:%d IP:%s use old cookies:%s " % (os.getpid(),ip,cookie_old))
                 cookies = cookiejar_from_dict(json.loads(cookie_old))
                 r = requests.get(DEST_URL,proxies=pro,cookies=cookies,timeout=SOKCET_TIMEOUT)
             else:
                 if USE_DEFAULT_COOKIE:
-                    cookie = cookiejar_from_dict({"bid":random_str()})
+                    rand_cookies = {"bid":random_str()}
+                    log.debug("PID:%d IP:%s use random cookies:%s " % (os.getpid(),ip,str(rand_cookies)))
+                    cookie = cookiejar_from_dict(rand_cookies)
                     r = requests.get(DEST_URL,proxies=pro,cookies=cookie,timeout=SOKCET_TIMEOUT)
                 else:
                     r = requests.get(DEST_URL,proxies=pro,timeout=SOKCET_TIMEOUT)

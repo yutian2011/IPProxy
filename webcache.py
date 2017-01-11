@@ -4,7 +4,7 @@ import json
 import time
 import test_and_verify
 from settings import log
-from test_and_verify import test_url
+#from test_and_verify import test_url
 from settings import TYPES
 from settings import GEVENT_NUM
 from settings import REDIS_SET_CACHE
@@ -18,25 +18,15 @@ from settings import WEB_USE_REDIS_CACHE
 from settings import WEB_CACHE_IP_NUM
 from settings import WEB_CACHE_REFRESH
 from settings import STORE_COOKIE
-
+from settings import TEST_URL
+from settings import SOKCET_TIMEOUT
+import os
 import gevent
+import requests
+
 from gevent import monkey
 monkey.patch_socket()
 
-'''
-#---redis---------------------------------------
-REDIS_SERVER = "127.0.0.1"
-REDIS_PORT = 6379
-DB_FOR_IP = 0
-REDIS_SORT_SET_TIME = "proxy_time"
-REDIS_SORT_SET_COUNTS = "proxy_counts"
-REDIS_SORT_SET_TYPES = "proxy_types"
-#---web cache----------------------------------
-WEB_USE_REDIS_CACHE = True
-WEB_CACHE_IP_NUM = 60
-WEB_CACHE_REFRESH = 3*60
-REDIS_SORT_SET_CACHE = "web_cache"
-'''
 
 class WebCachedIP(object):
     def __init__(self):
@@ -57,13 +47,29 @@ class WebCachedIP(object):
         return len(s),s
 
     def db_delete(self,r,ip,is_cached):
+        log.debug("PID:%d web cache delete IP:%s " % (os.getpid(),ip))
         if is_cached:
             r.srem(REDIS_SET_CACHE,ip)
+        '''
         r.zrem(REDIS_SORT_SET_COUNTS,ip)
         r.zrem(REDIS_SORT_SET_TIME,ip)
         r.zrem(REDIS_SORT_SET_TYPES,ip)
         if STORE_COOKIE:
             r.delete(ip)
+        '''
+    def test_url(self,ip,is_http,redis=None):
+        pro = {TYPES[is_http]:ip}
+        time = 0
+        flag= False
+        try:
+            r = requests.get(TEST_URL,proxies=pro,timeout=SOKCET_TIMEOUT)
+            log.debug("PID:%d Web cache ip:%s result:%d type:%s" % (os.getpid(),ip,r.status_code,TYPES[is_http]))
+            if r.ok:
+                flag = True
+        except Exception as e:
+            log.debug("PID:%d error:%s" % (os.getpid(),e.message))
+        return flag
+
 
     def test_ip(self,r,ips,is_cached):
         if ips == None or r == None:
@@ -78,9 +84,9 @@ class WebCachedIP(object):
             self.cur_pos += 1
             type = r.zscore(REDIS_SORT_SET_TYPES,ip)
             ret = False
-            time = 0
             if type != None:
-                ret,time = test_url(ip,int(type))
+                ret = self.test_url(ip,int(type))
+            log.debug("PID:%d web cache IP:%s  " % (os.getpid(),ip))
             if not ret:
                 self.db_delete(r,ip,is_cached)
                 self.cur_num -= 1
