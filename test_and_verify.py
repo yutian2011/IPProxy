@@ -47,7 +47,7 @@ def db_insert(ip_port,type,time,r=None):
 def db_insert_dest(name,ip_port,type,time,r=None):
     if r == None:
         r = redis.StrictRedis(REDIS_SERVER,REDIS_PORT,DB_FOR_IP)
-    if r.zscore(name+":time",ip_port) == None:
+    if r.zscore(name+":counts",ip_port) == None:
         r.zadd(name+":counts",0,ip_port)
     r.zadd(name+":time",time,ip_port)
     r.zadd(name+":types",type,ip_port)

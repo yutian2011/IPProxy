@@ -92,7 +92,7 @@ DEST_URL = [
         "default_cookies":{"bid":random_str(11)},
     },
 ]
-TEST_PROCESS_NUM = 3 # Test ip process number
+TEST_PROCESS_NUM = 5 # Test ip process number
 STORE_COOKIE = False  # store cookie or not 
 USE_DEFAULT_COOKIE = False #request web with cookie or not 
 TYPES = ["http","https"]

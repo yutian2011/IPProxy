@@ -14,7 +14,7 @@ from settings import REDIS_SET_CACHE
 app = Flask(__name__)
 
 TYPE = {0:"http",1:"https"}
-def db_find(num):
+def db_find(name,num):
     ret = []
     if num < 0:
         return None
@@ -24,18 +24,18 @@ def db_find(num):
     cache_num = 0
     if WEB_USE_REDIS_CACHE:
         tmp = num
-        cache_num = r.scard(REDIS_SET_CACHE)
+        cache_num = r.scard(name)
         if cache_num < num:
             n = num - cache_num
             tmp = cache_num
         for i in range(tmp):
-            ips.append(r.spop(REDIS_SET_CACHE))
+            ips.append(r.spop(name))
     else:
-        ips = r.zrange(REDIS_SORT_SET_COUNTS,0,num-1)
+        ips = r.zrange(name+":counts",0,num-1)
     if len(ips) == 0 and n == 0:
         return None
     if n > 0:
-        ips.extend(r.zrange(REDIS_SORT_SET_COUNTS,0,n-1))
+        ips.extend(r.zrange(name+":counts",0,n-1))
     for ip in ips:
         d = {}
         d["ip"] = ip
@@ -46,7 +46,7 @@ def db_find(num):
             else:
                 d["cookies"] = ""
         if not WEB_USE_REDIS_CACHE:
-            r.zincrby(REDIS_SORT_SET_COUNTS,ip)
+            r.zincrby(name+":counts",ip)
         type = r.zscore(REDIS_SORT_SET_TYPES,ip)
         if type != None:
             d["type"] = TYPE[int(type)]
@@ -57,10 +57,10 @@ def db_find(num):
         l = len(ips)
         i = cache_num
         while i < l:
-            r.zincrby(REDIS_SORT_SET_COUNTS,ips[i])
+            r.zincrby(name+":counts",ips[i])
             i += 1
     return ret
-
+'''
 @app.route('/proxy/api/<int:num>', methods=['GET'])
 def get_proxy(num):
     ret = db_find(num)
@@ -68,6 +68,16 @@ def get_proxy(num):
         return jsonify({"ret":False})
     else:
         return jsonify({"ret":True,"len":len(ret),"infos":ret})
+'''
+
+@app.route('/proxy/api/<string:name>/<int:num>', methods=['GET'])
+def get_proxy(name,num):
+    ret = db_find(name,num)
+    if ret == None:
+        return jsonify({"ret":False})
+    else:
+        return jsonify({"ret":True,"len":len(ret),"infos":ret})
+    
 
 if __name__ == '__main__':
     app.run(host="0.0.0.0",port=1129,debug=True)
