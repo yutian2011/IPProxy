@@ -57,7 +57,7 @@ def get_and_check(url,pattern,q):
     lists = parse_page(page,pattern)
     for ele in lists:
         is_existed = ele["ip_port"] in bloom
-        log.debug("PID:%d proxy worker ip %s  is_existed %d" % (os.getpid(),ele["ip_port"],is_existed))
+        #log.debug("PID:%d proxy worker ip %s  is_existed %d" % (os.getpid(),ele["ip_port"],is_existed))
         if is_existed == False:
             try:
                   bloom.add(ele["ip_port"])

@@ -2,6 +2,7 @@
 
 import logging
 import logging.handlers
+from random import Random
 
 class IPProxyBase(object):
     def __init__(self,q):
@@ -9,7 +10,7 @@ class IPProxyBase(object):
     def get_proxy():
         pass
     
-MIN_NUM = 1000
+MIN_NUM = 3000
 API_XICIDAILI_URL = "http://api.xicidaili.com/free2016.txt" # not use
 #URL_LIST = ["XICIDAILI","KUAIDAILI","66IP","IP181",]
 #URL_LIST = ["KUAIDAILI"]
@@ -31,44 +32,69 @@ URL_PATTERN = {
              "port":"//tr[@class='odd']/td[3]",
              "type":"//tr[@class='odd']/td[6]",
              "date":"//tr[@class='odd']/td[8]",
-             "page_range":5
+             "page_range":12
             },
             "KUAIDAILI":{
              "url":["http://www.kuaidaili.com/proxylist/%d","http://www.kuaidaili.com/free/inha/%d","http://www.kuaidaili.com/free/intr/%d","http://www.kuaidaili.com/free/outha/%d","http://www.kuaidaili.com/free/outtr/%d"],
              "ip":"//tr/td[1]",
              "port":"//tr/td[2]",
              "type":"//tr/td[3]",
-             "page_range":10
+             "page_range":12
             },
             "66IP":{
              "url":["http://www.66ip.cn/%d.html"],
              "ip":"//tbody/tr/td[1]",
              "port":"//tbody/tr/td[2]",
              "type":"//tbody/tr/td[3]",
-             "page_range":10
+             "page_range":12
             },
             "IP181":{
              "url":["http://www.ip181.com/","http://www.ip181.com/daili/%d.html"],
              "ip":"//tr[@class!='active' or not (@class)]/td[1]",
              "port":"//tr[@class!='active' or not (@class)]/td[2]",
              "type":"//tr[@class!='active' or not (@class)]/td[4]",
-             "page_range":10
+             "page_range":12
             },
             "MIMIIP":{
              "url":["http://www.mimiip.com/","http://www.mimiip.com/gngao/%d","http://www.mimiip.com/gnpu/%d","http://www.mimiip.com/gntou/%d","http://www.mimiip.com/hw/%d"],
              "ip":"//tr/td[1]",
              "port":"//tr/td[2]",
              "type":"//tr/td[5]",
-             "page_range":10
+             "page_range":12
             },
             }   
 
 PID = "PROXY_PID" # store process id for cmd.sh
-DEST_URL = "https://www.douban.com" #test url for test_and_verify
+#DEST_URL = "https://www.douban.com" #test url for test_and_verify
 TEST_URL = "https://www.baidu.com" #test url for web cache
-TEST_PROCESS_NUM = 5 # Test ip process number
-STORE_COOKIE = True  # store cookie or not
-USE_DEFAULT_COOKIE = True #request web with cookie or not 
+#---rand str function-------------------------------
+def random_str(randomlength=8):
+    str = ''
+    chars = 'AaBbCcDdEeFfGgHhIiJjKkLlMmNnOoPpQqRrSsTtUuVvWwXxYyZz0123456789'
+    length = len(chars) - 1
+    random = Random()
+    for i in range(randomlength):
+        str+=chars[random.randint(0, length)]
+    return str
+DEST_URL = [
+    {
+        "name":"douban",
+        "url":"https://www.douban.com",
+        "store_cookies":True,
+        "use_default_cookies":True,
+        "default_cookies":{"bid": random_str(11)},
+    },
+    {
+        "name":"douban_api",
+        "url":"https://api.douban.com/v2/movie/3237723",
+        "store_cookies":True,
+        "use_default_cookies":False,
+        "default_cookies":{"bid":random_str(11)},
+    },
+]
+TEST_PROCESS_NUM = 3 # Test ip process number
+STORE_COOKIE = False  # store cookie or not 
+USE_DEFAULT_COOKIE = False #request web with cookie or not 
 TYPES = ["http","https"]
 SOKCET_TIMEOUT = 30  # used in TEST_URLS
 QUEUE_TIMEOUT = 60  
@@ -85,10 +111,21 @@ REDIS_SORT_SET_COUNTS = "proxy_counts"
 REDIS_SORT_SET_TYPES = "proxy_types"
 #---web cache----------------------------------
 WEB_USE_REDIS_CACHE = True
-WEB_CACHE_IP_NUM = 60
-WEB_CACHE_REFRESH = 3*60
+#WEB_CACHE_IP_NUM = 60
+WEB_CACHE_REFRESH = 60
 #WEB_CACHE_REDIS = 2
 REDIS_SET_CACHE = "web_cache_ip"
+RETRY_TIMES = 1
+CACHE_FOR_URL = [
+    {
+    "name":"douban",
+    "num":50,
+    },
+    {
+    "name":"douban_api",
+    "num":10,
+    }
+]
 #---redis for bloom filter----------------------
 REDIS_CONNECTION = {
     'host': REDIS_SERVER,
@@ -104,6 +141,7 @@ headers = {
          "Accept-Encoding" : "gzip, deflate, sdch, br",
          
           }
+
 #---user agent list---------------------------------
 USER_AGENT_LIST = [
         "Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.1 (KHTML, like Gecko) Chrome/22.0.1207.1 Safari/537.1",  

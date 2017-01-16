@@ -15,18 +15,84 @@ from settings import REDIS_SORT_SET_TIME
 from settings import REDIS_SORT_SET_COUNTS
 from settings import REDIS_SORT_SET_TYPES
 from settings import WEB_USE_REDIS_CACHE
-from settings import WEB_CACHE_IP_NUM
 from settings import WEB_CACHE_REFRESH
 from settings import STORE_COOKIE
 from settings import TEST_URL
 from settings import SOKCET_TIMEOUT
+from settings import CACHE_FOR_URL
+from pybloom import BloomFilter
+from settings import RETRY_TIMES
 import os
 import gevent
 import requests
 
 from gevent import monkey
 monkey.patch_socket()
+'''
+frompybloomimportBloomFilter
 
+In[2]:f=BloomFilter(capacity=1000,error_rate=0.001)
+'''
+
+class CacheIPForDest(object):
+    def __init__(self,p):
+        self.p = p
+        self.r = redis.StrictRedis(REDIS_SERVER,REDIS_PORT,DB_FOR_IP)
+
+    def select_ip_for_check(self):
+        f = BloomFilter(capacity=1000,error_rate=0.001)
+        arr = []
+        for i in CACHE_FOR_URL:
+            cur_num = self.r.scard(i["name"]+":webcache")
+            diff = i["num"] - cur_num
+            if diff < 0 :
+                continue
+            data = self.r.smembers(i["name"]+":webcache")
+            for ip in data:
+                if ip in f:
+                    continue
+                else:
+                    f.add(ip)
+                d = {}
+                d["ip_port"] = ip
+                d["type"] = int(self.r.zscore(REDIS_SORT_SET_TYPES,ip))
+                d["db_flag"] = True
+                d["dest_cache"] = i["name"]+":webcache"
+                #d["name"] = i
+                self.p.put(d)
+                log.debug("PID:%d dict infos:%s" % (os.getpid(),json.dumps(d)))
+            s = self.r.zrange(i["name"]+":counts",0,2*diff - 1)
+            for ip in s:
+                if ip in f:
+                    continue
+                else:
+                    f.add(ip)
+                d = {}
+                d["ip_port"] = ip
+                d["type"] = int(self.r.zscore(REDIS_SORT_SET_TYPES,ip))
+                d["db_flag"] = True
+                d["dest_cache"] = i["name"]+":webcache"
+                #d["name"] = i
+                log.debug("PID:%d dict infos:%s" % (os.getpid(),json.dumps(d)))
+                self.p.put(d)
+
+    def run(self):
+        while True:
+            try:
+                t1 = time.time()
+                i = 0
+                while i < RETRY_TIMES:
+                    self.select_ip_for_check()
+                    i += 1
+                t2 = time.time()
+                t = WEB_CACHE_REFRESH - ( t2 - t1 )
+                if t > 0 :
+                    time.sleep(t)
+            except Exception as e:
+                log.error("PID:%d web cache error:%s " % (os.getpid(),e.message))
+
+
+        
 
 class WebCachedIP(object):
     def __init__(self):
@@ -134,9 +200,11 @@ class WebCachedIP(object):
                 if t > 0:
                     time.sleep(t)
 
-def web_cache_run():
-    obj = WebCachedIP()
-    obj.web_ip_cache()
+def web_cache_run(p):
+    #obj = WebCachedIP()
+    #obj.web_ip_cache()
+    obj = CacheIPForDest(p)
+    obj.run()
 
 if __name__ == "__main__":
     obj = WebCachedIP()

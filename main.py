@@ -23,7 +23,7 @@ def main():
     p1 = multiprocessing.Process(target=get_proxy,args=(ip_queue,msg_queue))
     p2 = multiprocessing.Process(target=test_and_verify.verify_db_data,args=(ip_queue,msg_queue))
     p3 = [multiprocessing.Process(target=test_and_verify.gevent_queue,args=(ip_queue,msg_queue)) for i in range(settings.TEST_PROCESS_NUM)]
-    p4 = multiprocessing.Process(target=web_cache_run)
+    p4 = multiprocessing.Process(target=web_cache_run,args=(ip_queue,))
     p1.start()
     p2.start()
     for p in p3:
