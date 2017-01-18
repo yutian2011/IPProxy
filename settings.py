@@ -112,7 +112,7 @@ REDIS_SORT_SET_TYPES = "proxy_types"
 #---web cache----------------------------------
 WEB_USE_REDIS_CACHE = True
 #WEB_CACHE_IP_NUM = 60
-WEB_CACHE_REFRESH = 60
+WEB_CACHE_REFRESH = 60*3
 #WEB_CACHE_REDIS = 2
 REDIS_SET_CACHE = "web_cache_ip"
 RETRY_TIMES = 1

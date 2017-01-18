@@ -93,6 +93,7 @@ def db_delete_dest(ip,r):
 
 
 
+
 def db_find_one():
     r = redis.StrictRedis(REDIS_SERVER,REDIS_PORT,DB_FOR_IP)
     s = r.zrange(REDIS_SORT_SET_COUNTS,0,0)
