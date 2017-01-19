@@ -21,9 +21,10 @@
  5. 代理通过轮询的方式给出. 
  6. 增加下限值判定.数据库中ip数目大于下限值时,不再启动程序获取ip. 
  7. 增加缓存,缓存一定数量的ip,每隔几分钟检验代理ip的有效性.
+ 8. 增加为不同目标网站提供不同的代理ip和缓存.
 
   TODO   
-增加为爬取多个不同网址提供不同的代理池.原因是,碰到爬取多个不同网站代理ip不一定都能够生效.
+......
 
 
 ## 安装
@@ -41,14 +42,34 @@ ubuntu系统可以直接运行:apt-get install redis-server
 这里说两点:
 配置文件settings.py中
 1.DEST_URL:目标网站,即将要爬取的网站.
+现在更改为了list.按照下面的方式添加相应的dict即可.名称可以任意取值,也是url请求中的名称.如果设定缓存时,与缓存中定义的名称需要一致,否则找不到相应存储ip位置.
+DEST_URL = [
+    {
+        "name":"douban",
+        "url":"https://www.douban.com",
+        "store_cookies":True,
+        "use_default_cookies":True,
+        "default_cookies":{"bid": random_str(11)},
+    },
+]
+
+
 2.TEST_URL:测试网站,为了web 缓存,取出一定数量的ip,每隔几分钟检验ip有效性,作为快速返回.
 
 配置文件中的web cache:
 是否启用缓存,先缓存一定数目的可用ip.检验速度较快.
-
+缓存设定格式如下: name与DEST_URL中name一致.num表示缓存多少个ip.这个根据实际情况设定,设置过大不一定好.
+大致以下几个依据:2-3分钟循环内能检查完毕;能满足2-3分钟用量;有的目标网站能够使用的代理ip本身就不多.
+CACHE_FOR_URL = [
+    {
+    "name":"douban",
+    "num":50,
+    },
+]
 
 启动
 1.启动程序:python main.py
 cmd.sh可以运行在ipproxy目录下运行的启停脚本,for linux
 2.启动web接口:python web.py
+url:127.0.0.1:1129/proxy/api/<name>/<num>
 
