@@ -35,7 +35,7 @@ class CacheIPForDest(object):
         self.r = redis.StrictRedis(REDIS_SERVER,REDIS_PORT,DB_FOR_IP)
 
     def select_ip_for_check(self):
-        f = BloomFilter(capacity=1000,error_rate=0.001)
+        f = BloomFilter(capacity=10000,error_rate=0.001)
         arr = []
         for i in CACHE_FOR_URL:
             data = self.r.smembers(i["name"]+":webcache")

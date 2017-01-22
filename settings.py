@@ -11,6 +11,7 @@ class IPProxyBase(object):
         pass
     
 MIN_NUM = 3000
+PROXY_RETRY_TIMES = 3
 API_XICIDAILI_URL = "http://api.xicidaili.com/free2016.txt" # not use
 #URL_LIST = ["XICIDAILI","KUAIDAILI","66IP","IP181",]
 #URL_LIST = ["KUAIDAILI"]
@@ -100,7 +101,7 @@ SOKCET_TIMEOUT = 30  # used in TEST_URLS
 QUEUE_TIMEOUT = 60  
 REFRESH_WEB_SITE_TIMEER = 60*30 #
 REFRESH_DB_TIMER = 60*45 #check ip in db
-REFRESH_BF = 6 #time = REFRESH_BF *REFRESH_WEB_SITE_TIMEER
+REFRESH_BF = 3 #time = REFRESH_BF *REFRESH_WEB_SITE_TIMEER
 GEVENT_NUM = 10 #gevent number
 #---redis---------------------------------------
 REDIS_SERVER = "127.0.0.1"
@@ -119,7 +120,7 @@ RETRY_TIMES = 1
 CACHE_FOR_URL = [
     {
     "name":"douban",
-    "num":50,
+    "num":150,
     },
     {
     "name":"douban_api",

@@ -39,12 +39,11 @@ def db_find(name,num):
     for ip in ips:
         d = {}
         d["ip"] = ip
-        if STORE_COOKIE:
-            cookies = r.get(ip)
-            if cookies != None:
-                d["cookies"] = cookies
-            else:
-                d["cookies"] = ""
+        cookies = r.get(name+":"+ip)
+        if cookies != None and len(cookies) > 0:
+            d["cookies"] = cookies
+        else:
+            d["cookies"] = ""
         if not WEB_USE_REDIS_CACHE:
             r.zincrby(name+":counts",ip)
         type = r.zscore(REDIS_SORT_SET_TYPES,ip)

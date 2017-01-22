@@ -90,31 +90,34 @@ def get_proxy(q,msg_queue):
     bloom.clear()
     times = 0
     while True:
-        num = db_zcount()
-        log.debug("PID:%d db current ips %d" % (os.getpid(),num))
-        while num > MIN_NUM:
-            time.sleep(REFRESH_WEB_SITE_TIMEER)
+        try:
+            num = db_zcount()
+            log.debug("PID:%d db current ips %d------" % (os.getpid(),num))
+            while num > MIN_NUM:
+                time.sleep(REFRESH_WEB_SITE_TIMEER)
+                times += 1
+                if times == REFRESH_BF:
+                    bloom.clear()
+                    times = 0
+                    log.debug("PID:%d refresh bloom filter" % os.getpid())
+            msg_queue.put("OK")
+            t1 = time.time()
+            event = []
+            for key,value in URL_PATTERN.items():
+               event.append(gevent.spawn(worker,value,q))
+            gevent.joinall(event)
+            t2 = time.time()
+            t = REFRESH_WEB_SITE_TIMEER - (t2 - t1)
             times += 1
-            if times == REFRESH_BF:
-                bloom.clear()
-                times = 0
-                log.debug("PID:%d refresh bloom filter" % os.getpid())
-        msg_queue.put("OK")
-        t1 = time.time()
-        event = []
-        for key,value in URL_PATTERN.items():
-           event.append(gevent.spawn(worker,value,q))
-        gevent.joinall(event)
-        t2 = time.time()
-        t = REFRESH_WEB_SITE_TIMEER - (t2 - t1)
-        if t > 0:
-            time.sleep(t)
-            log.debug("PID:%d web site sleep end" % os.getpid())
-            times += 1
-            if times == REFRESH_BF:
-                bloom.clear()
-                times = 0
-                log.debug("PID:%d refresh bloom filter" % os.getpid())
+            if t > 0:
+                time.sleep(t)
+                log.debug("PID:%d proxy sleep end------" % os.getpid())
+                if times == REFRESH_BF:
+                    bloom.clear()
+                    times = 0
+                    log.debug("PID:%d refresh bloom filter" % os.getpid())
+        except Exception as e:
+            log.error("PID:%d proxy error:%s" % os.getpid(),e.message())
                 
 
         
