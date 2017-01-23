@@ -242,25 +242,28 @@ def verify_ip_in_queues(q):
                 times += 1
         except Exception as e:
             log.error("PID:%d queue error:%s" % (os.getpid(),e.message))
-            break
+            #break
     return
     
 def gevent_queue(q,msg_queue):
     while True:
-        msg = msg_queue.get(block=True)
-        log.debug("PID:%d gevent queue start---------------------->" % os.getpid())
-        if TEST_PROCESS_NUM > 1 and msg == "OK":
-            for i in range(TEST_PROCESS_NUM-1):
-                msg_queue.put(os.getpid())
-                log.debug("PID:%d gevent queue call other processes----" % os.getpid())
-        glist = []
-        for i in range(GEVENT_NUM):
-            glist.append(gevent.spawn(verify_ip_in_queues,q))
-        gevent.joinall(glist)
-        l = msg_queue.qsize()
-        for i in range(l):
-            msg_queue.get()
-        log.debug("PID:%d gevent queue end<----------------------" % os.getpid())
+        try:
+            msg = msg_queue.get(block=True)
+            log.debug("PID:%d gevent queue start---------------------->" % os.getpid())
+            if TEST_PROCESS_NUM > 1 and msg == "OK":
+                for i in range(TEST_PROCESS_NUM-1):
+                    msg_queue.put(os.getpid())
+                    log.debug("PID:%d gevent queue call other processes----" % os.getpid())
+            glist = []
+            for i in range(GEVENT_NUM):
+                glist.append(gevent.spawn(verify_ip_in_queues,q))
+            gevent.joinall(glist)
+            l = msg_queue.qsize()
+            for i in range(l):
+                msg_queue.get()
+            log.debug("PID:%d gevent queue end<----------------------" % os.getpid())
+        except Exception as e:
+            log.error("PID:%d gevent_queue error:%s" % (os.getpid(),e.message))
 
 def get_ips_from_db(q):
     try:
