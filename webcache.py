@@ -60,9 +60,9 @@ class CacheIPForDest(object):
             cur_num = self.r.scard(i["name"]+":webcache")
             diff = i["num"] - cur_num
             log.debug("PID:%d web cache name:%s  cur:%d" % (os.getpid(),i["name"],diff))
-            s = self.r.zrange(i["name"]+":counts",0,2*diff - 1)
             if diff < 0 :
                 continue
+            s = self.r.zrange(i["name"]+":counts",0,2*diff - 1)
             for ip in s:
                 d = {}
                 d["ip_port"] = ip

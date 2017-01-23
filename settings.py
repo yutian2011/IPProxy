@@ -124,7 +124,7 @@ CACHE_FOR_URL = [
     },
     {
     "name":"douban_api",
-    "num":10,
+    "num":50,
     }
 ]
 #---redis for bloom filter----------------------
