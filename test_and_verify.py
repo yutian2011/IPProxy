@@ -18,7 +18,7 @@ from settings import QUEUE_TIMEOUT
 from settings import STORE_COOKIE
 from settings import USE_DEFAULT_COOKIE
 from settings import DEST_URL
-from settings import PROXY_RETRY_TIMES
+#from settings import PROXY_RETRY_TIMES
 import requests
 from requests.utils import dict_from_cookiejar
 from requests.cookies import cookiejar_from_dict
