@@ -46,7 +46,7 @@ class CacheIPForDest(object):
                     f.add(ip)
                 d = {}
                 d["ip_port"] = ip
-                log.debug("PID:%d web cache cache ip:%s" % (os.getpid(),ip))
+                #log.debug("PID:%d web cache cache ip:%s" % (os.getpid(),ip))
                 type = self.r.zscore(REDIS_SORT_SET_TYPES,ip)
                 if type == None:#already delete
                     self.r.srem(i["name"]+":webcache",ip)
@@ -56,7 +56,7 @@ class CacheIPForDest(object):
                 d["dest_cache"] = i["name"]+":webcache"
                 #d["name"] = i
                 self.p.put(d)
-                log.debug("PID:%d web cache dict infos:%s" % (os.getpid(),json.dumps(d)))
+                #log.debug("PID:%d web cache dict infos:%s" % (os.getpid(),json.dumps(d)))
             cur_num = self.r.scard(i["name"]+":webcache")
             diff = i["num"] - cur_num
             log.debug("PID:%d web cache name:%s  cur:%d" % (os.getpid(),i["name"],diff))
@@ -66,7 +66,7 @@ class CacheIPForDest(object):
             for ip in s:
                 d = {}
                 d["ip_port"] = ip
-                log.debug("PID:%d web cache pool ip:%s" % (os.getpid(),ip))
+                #log.debug("PID:%d web cache pool ip:%s" % (os.getpid(),ip))
                 type = self.r.zscore(REDIS_SORT_SET_TYPES,ip)
                 if type == None:
                     continue
@@ -74,7 +74,7 @@ class CacheIPForDest(object):
                 d["db_flag"] = True
                 d["dest_cache"] = i["name"]+":webcache"
                 #d["name"] = i
-                log.debug("PID:%d web cache dict infos:%s" % (os.getpid(),json.dumps(d)))
+                #log.debug("PID:%d web cache dict infos:%s" % (os.getpid(),json.dumps(d)))
                 self.p.put(d)
 
     def run(self):
@@ -156,7 +156,7 @@ class WebCachedIP(object):
             ret = False
             if type != None:
                 ret = self.test_url(ip,int(type))
-            log.debug("PID:%d web cache IP:%s  " % (os.getpid(),ip))
+            #log.debug("PID:%d web cache IP:%s  " % (os.getpid(),ip))
             if not ret:
                 self.db_delete(r,ip,is_cached)
                 self.cur_num -= 1

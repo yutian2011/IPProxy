@@ -11,7 +11,7 @@ class IPProxyBase(object):
         pass
     
 MIN_NUM = 3000
-PROXY_RETRY_TIMES = 3
+#PROXY_RETRY_TIMES = 3
 API_XICIDAILI_URL = "http://api.xicidaili.com/free2016.txt" # not use
 #URL_LIST = ["XICIDAILI","KUAIDAILI","66IP","IP181",]
 #URL_LIST = ["KUAIDAILI"]

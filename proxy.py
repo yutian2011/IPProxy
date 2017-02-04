@@ -76,7 +76,7 @@ def worker(pattern,q):
                 continue
             for j in range(1,num+1):
                 url = pattern["url"][i] % j
-                log.debug("PID:%d url:%s" % (os.getpid(),url))
+                #log.debug("PID:%d url:%s" % (os.getpid(),url))
                 get_and_check(url,pattern,q)
                 gevent.sleep(10)
     except Exception as e:

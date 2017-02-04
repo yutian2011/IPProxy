@@ -219,27 +219,27 @@ def verify_ip_in_queues(q):
             log.debug("PID:%d verify_ip_in_queues dict infos:%s" % (os.getpid(),json.dumps(item)))
             #print "ip test:",item
             times = 0
-            while times < PROXY_RETRY_TIMES:
-                ret,time = test_url(item["ip_port"],item["type"],r)
-                #log.debug("PID:%d queue ip:%s result:%d"%(os.getpid(),item["ip"],ret))
-                if ret:
-                    if item.has_key("dest_cache"):
-                        r.sadd(item["dest_cache"],item["ip_port"])
-                    else:
-                        db_insert(item["ip_port"],item["type"],time,r)
-                    # if check db data,need not to check DEST_URL list
-                    if item["db_flag"]:
-                        continue
-                    # test dest url
-                    for i in range(len(DEST_URL)):
-                        flag,time = test_dest_url(item["ip_port"],item["type"],DEST_URL[i],r)
-                        if flag:
-                            db_insert_dest(DEST_URL[i]["name"],item["ip_port"],item["type"],time,r)
+            #while times < PROXY_RETRY_TIMES:
+            ret,time = test_url(item["ip_port"],item["type"],r)
+            #log.debug("PID:%d queue ip:%s result:%d"%(os.getpid(),item["ip"],ret))
+            if ret:
+                if item.has_key("dest_cache"):
+                    r.sadd(item["dest_cache"],item["ip_port"])
                 else:
-                    if item["db_flag"]:
-                        log.debug("PID:%d queue ip delete:%s"%(os.getpid(),item["ip_port"]))
-                        db_delete(item["ip_port"],r)
-                times += 1
+                    db_insert(item["ip_port"],item["type"],time,r)
+                # if check db data,need not to check DEST_URL list
+                if item["db_flag"]:
+                    continue
+                # test dest url
+                for i in range(len(DEST_URL)):
+                    flag,time = test_dest_url(item["ip_port"],item["type"],DEST_URL[i],r)
+                    if flag:
+                        db_insert_dest(DEST_URL[i]["name"],item["ip_port"],item["type"],time,r)
+            else:
+                if item["db_flag"]:
+                    log.debug("PID:%d queue ip delete:%s"%(os.getpid(),item["ip_port"]))
+                    db_delete(item["ip_port"],r)
+            #times += 1
         except Exception as e:
             log.error("PID:%d queue error:%s" % (os.getpid(),e.message))
             #break
