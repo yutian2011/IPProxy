@@ -17,7 +17,7 @@
  1. 增加BloomFilter,作为抓取ip判重,减少判定使用资源.这里使用的是基于redis的版本.大材小用吧. [paramiao/pydrbloomfilter](https://github.com/paramiao/pydrbloomfilter)
  2. 使用redis作为数据存储和缓存. 
  3. 探测目标爬取网站时,增加cookie机制.目前主要有随机ua,代理IP,带cookie访问.cookie解析成字符串存放redis. 
- 4. 通过Web方式公布api. http://0.0.0.0:1129/proxy/api/<num>  通过给定的num,返回num个代理ip.当前目前cookie只支持对一个目标站点,不支持爬取多个不同的目标网站.
+ 4. 通过Web方式公布api. http://0.0.0.0:1129/proxy/api/<project>/<num>  通过给定的num,返回num个代理ip.当前目前cookie只支持对一个目标站点,不支持爬取多个不同的目标网站.
  5. 代理通过轮询的方式给出. 
  6. 增加下限值判定.数据库中ip数目大于下限值时,不再启动程序获取ip. 
  7. 增加缓存,缓存一定数量的ip,每隔几分钟检验代理ip的有效性.
@@ -28,14 +28,14 @@
 
 
 ## 安装
-python 2.7版本
+python 3.5版本
 需要安装的软件:redis,lxml,gevent,redis-py,gevent,mmh3等.
 
 ### 安装redis
 ubuntu系统可以直接运行:apt-get install redis-server
 
 ### 安装python扩展包
-使用pip install命令安装redis lxml gevent mmh3等.
+使用pip install命令安装redis lxml等.
 
 ## 使用
 配置:
@@ -73,3 +73,7 @@ cmd.sh可以运行在ipproxy目录下运行的启停脚本,for linux
 2.启动web接口:python web.py
 url:127.0.0.1:1129/proxy/api/<name>/<num>
 
+## TODO
+1. add ip anonymous test
+2. add other method to get ip.for example file.
+3. packaging
