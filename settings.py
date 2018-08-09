@@ -15,17 +15,6 @@ MIN_NUM = 3000
 API_XICIDAILI_URL = "http://api.xicidaili.com/free2016.txt" # not use
 #URL_LIST = ["XICIDAILI","KUAIDAILI","66IP","IP181",]
 #URL_LIST = ["KUAIDAILI"]
-'''
-# for test
-URL_PATTERN = {
-             "KUAIDAILI":{
-             "url":["http://www.kuaidaili.com/proxylist/"],
-             "ip":"//tr/td[1]",
-             "port":"//tr/td[2]",
-             "type":"//tr/td[3]",
-             "page_range":1#10
-            }}
-'''
 URL_PATTERN = {
              "XICIDAILI": {
              "url":["http://www.xicidaili.com/nt/%d","http://www.xicidaili.com/nn/%d","http://www.xicidaili.com/wn/%d","http://www.xicidaili.com/wt/%d"],
@@ -37,9 +26,9 @@ URL_PATTERN = {
             },
             "KUAIDAILI":{
              "url":["http://www.kuaidaili.com/proxylist/%d","http://www.kuaidaili.com/free/inha/%d","http://www.kuaidaili.com/free/intr/%d","http://www.kuaidaili.com/free/outha/%d","http://www.kuaidaili.com/free/outtr/%d"],
-             "ip":"//tr/td[1]",
-             "port":"//tr/td[2]",
-             "type":"//tr/td[3]",
+             "ip":"//div[@id='freelist']/table/tbody/tr/td[1]",
+             "port":"//div[@id='freelist']/table/tbody/tr/td[2]",
+             "type":"//div[@id='freelist']/table/tbody/tr/td[4]",
              "page_range":12
             },
             "66IP":{
@@ -47,13 +36,6 @@ URL_PATTERN = {
              "ip":"//tbody/tr/td[1]",
              "port":"//tbody/tr/td[2]",
              "type":"//tbody/tr/td[3]",
-             "page_range":12
-            },
-            "IP181":{
-             "url":["http://www.ip181.com/","http://www.ip181.com/daili/%d.html"],
-             "ip":"//tr[@class!='active' or not (@class)]/td[1]",
-             "port":"//tr[@class!='active' or not (@class)]/td[2]",
-             "type":"//tr[@class!='active' or not (@class)]/td[4]",
              "page_range":12
             },
             "MIMIIP":{
@@ -102,7 +84,7 @@ QUEUE_TIMEOUT = 60
 REFRESH_WEB_SITE_TIMEER = 60*30 #
 REFRESH_DB_TIMER = 60*45 #check ip in db
 REFRESH_BF = 3 #time = REFRESH_BF *REFRESH_WEB_SITE_TIMEER
-GEVENT_NUM = 10 #gevent number
+WORKER_NUM = 10 
 #---redis---------------------------------------
 REDIS_SERVER = "127.0.0.1"
 REDIS_PORT = 6379
@@ -206,10 +188,14 @@ fh = logging.handlers.TimedRotatingFileHandler("proxy.log", "D", 1, 10)
 fh.setLevel(logging.DEBUG)
 ch = logging.StreamHandler()
 ch.setLevel(logging.ERROR)
-formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+formatter = logging.Formatter("[%(asctime)s] [%(filename)24s] %(funcName)32s %(lineno)6s \
+              %(levelname)6s - %(message)s", "%Y-%m-%d %H:%M:%S")
+#formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 ch.setFormatter(formatter)
 fh.setFormatter(formatter)
 log.addHandler(ch)
 log.addHandler(fh)
 
 # ip 测试  http://ip.filefab.com/index.php
+# http://members.3322.org/dyndns/getip
+# https://whoer.net/

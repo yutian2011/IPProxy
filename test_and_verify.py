@@ -5,7 +5,7 @@ import os
 import time
 from settings import TEST_URL
 from settings import SOKCET_TIMEOUT
-from settings import GEVENT_NUM
+from settings import WORKER_NUM
 from settings import REFRESH_DB_TIMER
 from settings import DB_FOR_IP
 from settings import REDIS_SERVER
@@ -23,23 +23,22 @@ import requests
 from requests.utils import dict_from_cookiejar
 from requests.cookies import cookiejar_from_dict
 from random import Random
-import gevent
 import multiprocessing
-import Queue as InQueue
+import queue as InQueue
 from multiprocessing import Queue
-from Queue import Empty
+from queue import Empty
 import json
-from gevent import monkey
-monkey.patch_socket()
-monkey.patch_ssl()
 import redis
 import os
 from settings import log
 from settings import TEST_PROCESS_NUM
+import threading
+import traceback
+import operator
 
 def db_insert(ip_port,type,time,r=None):
     if r == None:
-        r = redis.StrictRedis(REDIS_SERVER,REDIS_PORT,DB_FOR_IP)
+        r = redis.StrictRedis(REDIS_SERVER, REDIS_PORT, DB_FOR_IP, decode_responses=True)
     if r.zscore(REDIS_SORT_SET_TIME,ip_port) == None:
         r.zadd(REDIS_SORT_SET_COUNTS,0,ip_port)
     r.zadd(REDIS_SORT_SET_TIME,time,ip_port)
@@ -47,7 +46,7 @@ def db_insert(ip_port,type,time,r=None):
 
 def db_insert_dest(name,ip_port,type,time,r=None):
     if r == None:
-        r = redis.StrictRedis(REDIS_SERVER,REDIS_PORT,DB_FOR_IP)
+        r = redis.StrictRedis(REDIS_SERVER,REDIS_PORT,DB_FOR_IP, decode_responses=True)
     if r.zscore(name+":counts",ip_port) == None:
         r.zadd(name+":counts",0,ip_port)
     r.zadd(name+":time",time,ip_port)
@@ -57,7 +56,7 @@ def db_insert_dest(name,ip_port,type,time,r=None):
 
 def db_select(r=None):
     if r == None:
-        r = redis.StrictRedis(REDIS_SERVER,REDIS_PORT,DB_FOR_IP)
+        r = redis.StrictRedis(REDIS_SERVER,REDIS_PORT,DB_FOR_IP, decode_responses=True)
     s = r.zrange(REDIS_SORT_SET_COUNTS,0,-1)
     if len(s) == 0:
         return 
@@ -71,7 +70,7 @@ def db_select(r=None):
 
 def db_delete(ip,r):
     if r == None:
-        r = redis.StrictRedis(REDIS_SERVER,REDIS_PORT,DB_FOR_IP)
+        r = redis.StrictRedis(REDIS_SERVER,REDIS_PORT,DB_FOR_IP, decode_responses=True)
     log.debug("PID:%d delete IP:%s " % (os.getpid(),ip))
     r.zrem(REDIS_SORT_SET_COUNTS,ip)
     r.zrem(REDIS_SORT_SET_TIME,ip)
@@ -83,7 +82,7 @@ def db_delete(ip,r):
 # for all dest 
 def db_delete_dest(ip,r):
     if r == None:
-        r = redis.StrictRedis(REDIS_SERVER,REDIS_PORT,DB_FOR_IP)
+        r = redis.StrictRedis(REDIS_SERVER,REDIS_PORT,DB_FOR_IP, decode_responses=True)
     log.debug("PID:%d delete dest proxy IP:%s " % (os.getpid(),ip))
     for i in range(len(DEST_URL)):
         r.zrem(DEST_URL[i]["name"]+":counts",ip)
@@ -96,7 +95,7 @@ def db_delete_dest(ip,r):
 
 
 def db_find_one():
-    r = redis.StrictRedis(REDIS_SERVER,REDIS_PORT,DB_FOR_IP)
+    r = redis.StrictRedis(REDIS_SERVER,REDIS_PORT,DB_FOR_IP, decode_responses=True)
     s = r.zrange(REDIS_SORT_SET_COUNTS,0,0)
     if len(s) == 0:
         return None
@@ -155,11 +154,11 @@ def test_dest_url(ip,is_http,dest_infos,redis=None):
                 #print "new cookies:",r.cookies
                 if r.cookies != None :
                     cookie = json.dumps(dict_from_cookiejar(r.cookies))
-                    if cookie and cookie != "{}" and cookie_old != cookie:
+                    if cookie and cookie != "{}" and not operator.eq(cookie, cookie_old):
                         log.debug("PID:%d IP:%s new cookies:%s old cookies:%s" % (os.getpid(),ip,cookie,cookie_old))
                         redis.set(r_cookies_key,cookie)
     except Exception as e:
-        log.debug("PID:%d error:%s" % (os.getpid(),e.message))
+        log.debug("PID:%d error:%s" % (os.getpid(), e))
     return flag,time
 
 def test_url(ip,is_http,redis=None):
@@ -174,7 +173,7 @@ def test_url(ip,is_http,redis=None):
         cookie_old = None
         if STORE_COOKIE and redis != None:
             cookie_old = redis.get(ip)
-            #print "old cookie:",cookie
+            print ("old cookie:",cookie)
             if cookie_old != None and cookie_old != "None" and cookie_old != "{}":
                 #print "use cookie"
                 log.debug("PID:%d IP:%s use old cookies:%s " % (os.getpid(),ip,cookie_old))
@@ -206,24 +205,25 @@ def test_url(ip,is_http,redis=None):
                         log.debug("PID:%d IP:%s new cookies:%s old cookies:%s" % (os.getpid(),ip,cookie,cookie_old))
                         redis.set(ip,cookie)
     except Exception as e:
-        log.debug("PID:%d error:%s" % (os.getpid(),e.message))
+        log.debug("PID:%d error:%s" % (os.getpid(),e))
     return flag,time
 
 
 
 def verify_ip_in_queues(q):
-    r = redis.StrictRedis(REDIS_SERVER,REDIS_PORT,DB_FOR_IP)
     while True:
         try:
-            item = q.get(timeout=QUEUE_TIMEOUT)
-            log.debug("PID:%d verify_ip_in_queues dict infos:%s" % (os.getpid(),json.dumps(item)))
+            r = redis.StrictRedis(REDIS_SERVER,REDIS_PORT,DB_FOR_IP, decode_responses=True)
+            #item = q.get(timeout=QUEUE_TIMEOUT)
+            item = q.get(block=True)
+            log.debug("PID:%d verify_ip_in_queues dict infos:%s" % (os.getpid(),item))
             #print "ip test:",item
             times = 0
             #while times < PROXY_RETRY_TIMES:
             ret,time = test_url(item["ip_port"],item["type"],r)
             #log.debug("PID:%d queue ip:%s result:%d"%(os.getpid(),item["ip"],ret))
             if ret:
-                if item.has_key("dest_cache"):
+                if "dest_cache" in item:
                     r.sadd(item["dest_cache"],item["ip_port"])
                 else:
                     db_insert(item["ip_port"],item["type"],time,r)
@@ -240,35 +240,31 @@ def verify_ip_in_queues(q):
                     log.debug("PID:%d queue ip delete:%s"%(os.getpid(),item["ip_port"]))
                     db_delete(item["ip_port"],r)
             #times += 1
+        except redis.exceptions.ConnectionError as e:
+            log.error("PID:%d queue error:%s" % (os.getpid(),e))
+            time.sleep(60)
         except Exception as e:
-            log.error("PID:%d queue error:%s" % (os.getpid(),e.message))
+            log.error("PID:%d queue error:%s" % (os.getpid(),traceback.format_exc()))
             #break
     return
-    
-def gevent_queue(q,msg_queue):
+
+def thread_queue(q):
     while True:
         try:
-            msg = msg_queue.get(block=True)
-            log.debug("PID:%d gevent queue start---------------------->" % os.getpid())
-            if TEST_PROCESS_NUM > 1 and msg == "OK":
-                for i in range(TEST_PROCESS_NUM-1):
-                    msg_queue.put(os.getpid())
-                    log.debug("PID:%d gevent queue call other processes----" % os.getpid())
-            glist = []
-            for i in range(GEVENT_NUM):
-                glist.append(gevent.spawn(verify_ip_in_queues,q))
-            gevent.joinall(glist)
-            l = msg_queue.qsize()
-            for i in range(l):
-                msg_queue.get()
-            log.debug("PID:%d gevent queue end<----------------------" % os.getpid())
+            threads = []
+            for i in range(WORKER_NUM):
+                thread = threading.Thread(target=verify_ip_in_queues, args=(q,))
+                thread.start()
+                threads.append(thread)
+            for thread in threads:
+                thread.join()
         except Exception as e:
-            log.error("PID:%d gevent_queue error:%s" % (os.getpid(),e.message))
+            pass
 
 def get_ips_from_db(q):
     try:
         log.debug("PID:%d get_ips_from_db start---------------------->" % os.getpid())
-        r = redis.StrictRedis(REDIS_SERVER,REDIS_PORT,DB_FOR_IP)
+        r = redis.StrictRedis(REDIS_SERVER,REDIS_PORT,DB_FOR_IP, decode_responses=True)
         ips = db_select()
         i = 0
         for ip,type in ips:
@@ -276,15 +272,14 @@ def get_ips_from_db(q):
             i += 1
         log.debug("PID:%d get_ips_from_db cur ip num:%d" % (os.getpid(),i))
     except Exception as e:
-        log.error("PID:%d get_ips_from_db error:%s" % (os.getpid(),e.message))
+        log.error("PID:%d get_ips_from_db error:%s" % (os.getpid(),traceback.format_exc()))
     log.debug("PID:%d get_ips_from_db end<----------------------" % os.getpid())
     return
 
 
 
-def verify_db_data(q,msg_queue):
+def verify_db_data(q):
     while True:
-        msg_queue.put("OK")
         get_ips_from_db(q)
         time.sleep(REFRESH_DB_TIMER)
 

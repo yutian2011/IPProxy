@@ -18,7 +18,7 @@ def db_find(name,num):
     ret = []
     if num < 0:
         return None
-    r = redis.StrictRedis(REDIS_SERVER,REDIS_PORT,DB_FOR_IP)
+    r = redis.StrictRedis(REDIS_SERVER,REDIS_PORT,DB_FOR_IP, decode_responses=True)
     ips = []
     n = 0
     cache_num = 0

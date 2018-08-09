@@ -6,7 +6,7 @@ import test_and_verify
 from settings import log
 #from test_and_verify import test_url
 from settings import TYPES
-from settings import GEVENT_NUM
+from settings import WORKER_NUM
 from settings import REDIS_SET_CACHE
 from settings import REDIS_SERVER
 from settings import REDIS_PORT
@@ -20,14 +20,11 @@ from settings import STORE_COOKIE
 from settings import TEST_URL
 from settings import SOKCET_TIMEOUT
 from settings import CACHE_FOR_URL
-from pybloom import BloomFilter
+from pybloom_live import BloomFilter
 from settings import RETRY_TIMES
 import os
-import gevent
 import requests
-
-from gevent import monkey
-monkey.patch_socket()
+import threading
 
 class CacheIPForDest(object):
     def __init__(self,p):
@@ -93,7 +90,7 @@ class CacheIPForDest(object):
                     time.sleep(t)
                 log.debug("PID:%d web cache sleep end ---------------------------" % os.getpid())
         except Exception as e:
-                log.error("PID:%d web cache error:%s " % (os.getpid(),e.message))
+                log.error("PID:%d web cache error:%s " % (os.getpid(),e))
 
 
         
@@ -137,7 +134,7 @@ class WebCachedIP(object):
             if r.ok:
                 flag = True
         except Exception as e:
-            log.debug("PID:%d error:%s" % (os.getpid(),e.message))
+            log.debug("PID:%d error:%s" % (os.getpid(),e))
         return flag
 
 
@@ -179,8 +176,12 @@ class WebCachedIP(object):
                 #print ips
                 #print "cur num",self.cur_num,self.cur_pos,self.len
                 if num >0 and ips != None and len(ips) > 0 :
-                    glist = [gevent.spawn(self.test_ip,r,ips,True) for i in range(GEVENT_NUM)]
-                    gevent.joinall(glist)
+                    threads = [threading.Thread(target=self.test_ip,args=(r,ips,True))
+                            for i in range(WORKER_NUM)]
+                    for thread in threas:
+                        thread.start()
+                    for thread in threads:
+                        thread.join()
                 times = 0
                 while self.cur_num < WEB_CACHE_IP_NUM and times < 1024:
                     #print "cur num",self.cur_num
@@ -191,8 +192,11 @@ class WebCachedIP(object):
                     times += 1
                     if num == 0 or ips == None:
                         continue
-                    glist = [gevent.spawn(self.test_ip,r,ips,False) for i in range(GEVENT_NUM)]
-                    gevent.joinall(glist)
+                    threads = [threading.Thread(self.test_ip,args=(r,ips,False)) for i in range(GEVENT_NUM)]
+                    for thread in threads:
+                        thread.start()
+                    for thread in threads:
+                        thread.join()
                     #print "cur num end ",self.cur_num
             except Exception as e:
                 #print e
