@@ -15,7 +15,7 @@ import redis
 import threading
 import traceback
 
-bloom = BloomFilter(capacity=100000, error_rate=0.001)
+bloom = BloomFilter(capacity=10000000, error_rate=0.001)
 
 def get_pages(url):
     try:
@@ -41,12 +41,13 @@ def parse_page(url, page, pattern):
         ret = {}
         str = "%s:%s"
         ret["ip_port"] = str%(ips[i].text,ports[i].text)
-        print(url, ret["ip_port"], ty[i].text)
-        if ty[i].text.find("https") == -1:
+        #print(url, ret["ip_port"], ty[i].text)
+        if ty[i].text.find("http") >= 0:
             ret["type"] = 0
-        else:
+        elif ty[i].text.find("https") >= 0:
             ret["type"] = 1
-        ret["db_flag"] = False
+        else:
+            log.error("PID:%d page:%s can not get proxy type" % (os.getpid(), url))
         yield ret
 
 def get_and_check(url,pattern,q):
@@ -63,6 +64,13 @@ def get_and_check(url,pattern,q):
                     bloom.add(ele["ip_port"])
                 except Exception as e:
                     log.error("PID:%d bloom filter error:%s ip:%s" % (os.getpid(),e,ele["ip_port"]))
+                #url, ip, is_http, store_cookies, use_default_cookies, check_anonymity,
+                ele["name"] = "global"
+                ele["db"] = 0
+                ele["url"] = TEST_URL
+                ele["store_cookies"] = STORE_COOKIE
+                ele["use_default_cookies"] = USE_DEFAULT_COOKIE
+                ele["check_anonymity"] = True
                 q.put(ele)
     except Exception as e:
         log.error("PID:%d parse page error %s " % (os.getpid(), traceback.format_exc()))
@@ -86,7 +94,7 @@ def worker(pattern,q):
 
 def db_zcount():
     r = redis.StrictRedis(REDIS_SERVER,REDIS_PORT,DB_FOR_IP, decode_responses=True)
-    return r.zcard(REDIS_SORT_SET_COUNTS)
+    return r.zcard("proxy:counts")
 
 def get_proxy(q):
     #bloom.clear_all()
@@ -99,7 +107,8 @@ def get_proxy(q):
                 time.sleep(REFRESH_WEB_SITE_TIMEER)
                 times += 1
                 if times == REFRESH_BF:
-                    bloom.clear()
+                    #bloom.clear()
+                    bloom = BloomFilter(capacity=100000, error_rate=0.001)
                     times = 0
                     log.debug("PID:%d refresh bloom filter" % os.getpid())
             t1 = time.time()
@@ -117,7 +126,8 @@ def get_proxy(q):
                 time.sleep(t)
                 log.debug("PID:%d proxy sleep end------" % os.getpid())
                 if times == REFRESH_BF:
-                    bloom.clear()
+                    #bloom.clear()
+                    bloom = BloomFilter(capacity=100000, error_rate=0.001)
                     times = 0
                     log.debug("PID:%d refresh bloom filter" % os.getpid())
         except Exception as e:

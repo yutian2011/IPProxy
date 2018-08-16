@@ -11,15 +11,12 @@ from settings import REDIS_SET_CACHE
 from settings import REDIS_SERVER
 from settings import REDIS_PORT
 from settings import DB_FOR_IP
-from settings import REDIS_SORT_SET_TIME
-from settings import REDIS_SORT_SET_COUNTS
-from settings import REDIS_SORT_SET_TYPES
 from settings import WEB_USE_REDIS_CACHE
 from settings import WEB_CACHE_REFRESH
 from settings import STORE_COOKIE
 from settings import TEST_URL
-from settings import SOKCET_TIMEOUT
-from settings import CACHE_FOR_URL
+from settings import DEST_URL
+from settings import SOCKET_TIMEOUT
 from pybloom_live import BloomFilter
 from settings import RETRY_TIMES
 import os
@@ -29,49 +26,51 @@ import threading
 class CacheIPForDest(object):
     def __init__(self,p):
         self.p = p
-        self.r = redis.StrictRedis(REDIS_SERVER,REDIS_PORT,DB_FOR_IP)
+        self.r = redis.StrictRedis(REDIS_SERVER, REDIS_PORT, DB_FOR_IP,  decode_responses=True)
 
     def select_ip_for_check(self):
-        f = BloomFilter(capacity=10000,error_rate=0.001)
         arr = []
-        for i in CACHE_FOR_URL:
+        for i in DEST_URL:
             data = self.r.smembers(i["name"]+":webcache")
             for ip in data:
-                if ip in f:
-                    continue
-                else:
-                    f.add(ip)
-                d = {}
+                d = {} #name, url, ip, is_http, store_cookies, use_default_cookies, check_anonymity
+                d["name"] = i["name"]
+                d["url"] = i["url"]
                 d["ip_port"] = ip
                 #log.debug("PID:%d web cache cache ip:%s" % (os.getpid(),ip))
-                type = self.r.zscore(REDIS_SORT_SET_TYPES,ip)
+                type = self.r.zscore("proxy:types",ip)
                 if type == None:#already delete
                     self.r.srem(i["name"]+":webcache",ip)
                     continue
                 d["type"] = int(type)
-                d["db_flag"] = True
-                d["dest_cache"] = i["name"]+":webcache"
+                d["store_cookies"] = i["store_cookies"]
+                d["use_default_cookies"] = i["use_default_cookies"]
+                d["check_anonymity"] = False
+                d["db"] = 2
+
+                #d["dest_cache"] = i["name"]+":webcache"
                 #d["name"] = i
                 self.p.put(d)
                 #log.debug("PID:%d web cache dict infos:%s" % (os.getpid(),json.dumps(d)))
             cur_num = self.r.scard(i["name"]+":webcache")
             diff = i["num"] - cur_num
-            log.debug("PID:%d web cache name:%s  cur:%d" % (os.getpid(),i["name"],diff))
+            log.debug("PID:%d web cache name:%s  add:%d" % (os.getpid(),i["name"],diff))
             if diff < 0 :
                 continue
             s = self.r.zrange(i["name"]+":counts",0,2*diff - 1)
             for ip in s:
                 d = {}
+                d["name"] = i["name"]
                 d["ip_port"] = ip
-                #log.debug("PID:%d web cache pool ip:%s" % (os.getpid(),ip))
-                type = self.r.zscore(REDIS_SORT_SET_TYPES,ip)
+                d["url"] = i["url"]
+                type = self.r.zscore("proxy:types", ip)
                 if type == None:
                     continue
                 d["type"] = int(type)
-                d["db_flag"] = True
-                d["dest_cache"] = i["name"]+":webcache"
-                #d["name"] = i
-                #log.debug("PID:%d web cache dict infos:%s" % (os.getpid(),json.dumps(d)))
+                d["db"] = 2
+                d["store_cookies"] = i["store_cookies"]
+                d["use_default_cookies"] = i["use_default_cookies"]
+                d["check_anonymity"] = False
                 self.p.put(d)
 
     def run(self):
@@ -168,7 +167,7 @@ class WebCachedIP(object):
         while True:
             t1 = time.time()
             try:
-                r = redis.StrictRedis(REDIS_SERVER,REDIS_PORT,DB_FOR_IP)
+                r = redis.StrictRedis(REDIS_SERVER, REDIS_PORT, DB_FOR_IP, decode_responses=True)
                 num,ips = self.db_set_select(r,REDIS_SET_CACHE,False,WEB_CACHE_IP_NUM)
                 self.cur_num = num
                 self.cur_pos = 0
@@ -192,7 +191,7 @@ class WebCachedIP(object):
                     times += 1
                     if num == 0 or ips == None:
                         continue
-                    threads = [threading.Thread(self.test_ip,args=(r,ips,False)) for i in range(GEVENT_NUM)]
+                    threads = [threading.Thread(self.test_ip,args=(r,ips,False)) for i in range(WORKER_NUM)]
                     for thread in threads:
                         thread.start()
                     for thread in threads:
@@ -209,8 +208,6 @@ class WebCachedIP(object):
                     time.sleep(t)
 
 def web_cache_run(p):
-    #obj = WebCachedIP()
-    #obj.web_ip_cache()
     obj = CacheIPForDest(p)
     obj.run()
 

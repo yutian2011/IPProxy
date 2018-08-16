@@ -6,12 +6,12 @@ if [ $# != 1 ];then
 fi
 
 function start () {
-    setsid python main.py &
+    setsid python main.py > /dev/null 2>&1 &
     return
 }
 
 function stop() { 
-    ps -ef |grep main.py |awk '{print $2}'|xargs kill -9
+    ps -ef |grep ipproxy.py |awk '{print $2}'|xargs kill -9
     return 
 }
 

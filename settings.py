@@ -48,7 +48,6 @@ URL_PATTERN = {
             }   
 
 PID = "PROXY_PID" # store process id for cmd.sh
-#DEST_URL = "https://www.douban.com" #test url for test_and_verify
 TEST_URL = "https://www.baidu.com" #test url for web cache
 #---rand str function-------------------------------
 def random_str(randomlength=8):
@@ -63,35 +62,42 @@ DEST_URL = [
     {
         "name":"douban",
         "url":"https://www.douban.com",
-        "store_cookies":True,
-        "use_default_cookies":True,
+        "store_cookies": True,
+        "use_default_cookies": True,
         "default_cookies":{"bid": random_str(11)},
+        "num":50
     },
     {
         "name":"douban_api",
         "url":"https://api.douban.com/v2/movie/3237723",
-        "store_cookies":True,
-        "use_default_cookies":False,
+        "store_cookies": True,
+        "use_default_cookies": True,
         "default_cookies":{"bid":random_str(11)},
+        "num":50
     },
 ]
-TEST_PROCESS_NUM = 5 # Test ip process number
-STORE_COOKIE = False  # store cookie or not 
-USE_DEFAULT_COOKIE = False #request web with cookie or not 
+
+#WHO = "http://www.xxorg.com/tools/checkproxy/"
+WHO = {
+        "xxorg":"http://www.xxorg.com/tools/checkproxy/",
+        "3322":"http://members.3322.org/dyndns/getip"
+      }
+WHOAMI = "http://ip.42.pl/raw"
+TEST_PROCESS_NUM = 3 # Test ip process number
+STORE_COOKIE = False  # store cookie or not  for test url
+USE_DEFAULT_COOKIE = False #request web with cookie or not for test url 
 TYPES = ["http","https"]
-SOKCET_TIMEOUT = 30  # used in TEST_URLS
+SOCKET_TIMEOUT = 30  # used in TEST_URLS
 QUEUE_TIMEOUT = 60  
 REFRESH_WEB_SITE_TIMEER = 60*30 #
-REFRESH_DB_TIMER = 60*45 #check ip in db
-REFRESH_BF = 3 #time = REFRESH_BF *REFRESH_WEB_SITE_TIMEER
-WORKER_NUM = 10 
+REFRESH_DB_TIMER = 60*60 #check ip in db
+REFRESH_BF = 2 #time = REFRESH_BF *REFRESH_WEB_SITE_TIMEER
+WORKER_NUM = 20
+
 #---redis---------------------------------------
 REDIS_SERVER = "127.0.0.1"
 REDIS_PORT = 6379
 DB_FOR_IP = 0
-REDIS_SORT_SET_TIME = "proxy_time"
-REDIS_SORT_SET_COUNTS = "proxy_counts"
-REDIS_SORT_SET_TYPES = "proxy_types"
 #---web cache----------------------------------
 WEB_USE_REDIS_CACHE = True
 #WEB_CACHE_IP_NUM = 60
@@ -99,16 +105,6 @@ WEB_CACHE_REFRESH = 60*3
 #WEB_CACHE_REDIS = 2
 REDIS_SET_CACHE = "web_cache_ip"
 RETRY_TIMES = 1
-CACHE_FOR_URL = [
-    {
-    "name":"douban",
-    "num":150,
-    },
-    {
-    "name":"douban_api",
-    "num":50,
-    }
-]
 #---redis for bloom filter----------------------
 REDIS_CONNECTION = {
     'host': REDIS_SERVER,
@@ -197,5 +193,12 @@ log.addHandler(ch)
 log.addHandler(fh)
 
 # ip 测试  http://ip.filefab.com/index.php
-# http://members.3322.org/dyndns/getip
+#WHO = "http://www.xxorg.com/tools/checkproxy/"
+#WHO = "http://members.3322.org/dyndns/getip"
 # https://whoer.net/
+#test local pc ip
+#http://ip.42.pl/raw
+#https://jsonip.com/
+#http://httpbin.org/ip
+#https://api.ipify.org/?format=json
+#
